@@ -1,0 +1,579 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model menus {
+  id         Int       @id @default(autoincrement())
+  name       String    @unique @db.VarChar(19)
+  created_at DateTime? @db.Timestamp(0)
+  updated_at DateTime? @db.Timestamp(0)
+}
+
+model permission_role {
+  permission_id Int
+  role_id       Int
+  permissions   permissions @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+  roles         roles       @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  read_permit   Boolean     @default(false)
+  write_permit  Boolean     @default(false)
+  modify_permit Boolean     @default(false)
+
+  @@id([permission_id, role_id])
+}
+
+model role_user {
+  user_id Int
+  role_id Int
+  roles   roles @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  users   users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@id([user_id, role_id])
+}
+
+model permissions {
+  id              Int               @id @default(autoincrement())
+  uid             String            @unique @default(uuid()) @db.Uuid
+  name            String            @unique @db.VarChar(191)
+  display_name    String?           @db.VarChar(191)
+  description     String?           @db.VarChar(191)
+  created_at      DateTime          @db.Timestamp(0)
+  updated_at      DateTime          @db.Timestamp(0)
+  permission_role permission_role[]
+}
+
+model roles {
+  id              Int               @id @default(autoincrement())
+  uid             String            @unique @default(uuid()) @db.Uuid
+  name            String            @unique @db.VarChar(191)
+  display_name    String?           @db.VarChar(191)
+  description     String?           @db.VarChar(191)
+  created_at      DateTime          @db.Timestamp(0)
+  updated_at      DateTime          @db.Timestamp(0)
+  permission_role permission_role[]
+  role_user       role_user[]
+}
+
+model users {
+  id                     Int                     @id @default(autoincrement())
+  uid                    String                  @unique @default(uuid()) @db.Uuid
+  username               String                  @unique @db.VarChar(191)
+  name                   String                  @db.VarChar(191)
+  sex                    String                  @db.VarChar(191)
+  email                  String                  @unique @db.VarChar(191)
+  email_verified_at      DateTime?               @db.Timestamp(0)
+  password               String                  @db.VarChar(191)
+  created_at             DateTime?               @db.Timestamp(0)
+  updated_at             DateTime?               @db.Timestamp(0)
+  deleted_at             DateTime?               @db.Timestamp(0)
+  created_by             Int?
+  updated_by             Int?
+  deleted_by             Int?
+  role_user              role_user[]
+  createdby              users?                  @relation("user_created", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby              users?                  @relation("user_updated", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby              users?                  @relation("user_deleted", fields: [deleted_by], references: [id], onDelete: NoAction)
+  users                  users[]                 @relation("user_created")
+  users2                 users[]                 @relation("user_updated")
+  users3                 users[]                 @relation("user_deleted")
+  shapes                 shapes[]                @relation("created_by")
+  shapes2                shapes[]                @relation("updated_by")
+  shapes3                shapes[]                @relation("deleted_by")
+  types                  types[]                 @relation("created_by")
+  types2                 types[]                 @relation("updated_by")
+  types3                 types[]                 @relation("deleted_by")
+  categories             categories[]            @relation("created_by")
+  categories2            categories[]            @relation("updated_by")
+  categories3            categories[]            @relation("deleted_by")
+  drugs                  drugs[]                 @relation("created_by")
+  drugs2                 drugs[]                 @relation("updated_by")
+  drugs3                 drugs[]                 @relation("deleted_by")
+  formulas               formulas[]              @relation("created_by")
+  formulas2              formulas[]              @relation("updated_by")
+  formulas3              formulas[]              @relation("deleted_by")
+  detail_formulas        detail_formulas[]       @relation("created_by")
+  detail_formulas2       detail_formulas[]       @relation("updated_by")
+  detail_formulas3       detail_formulas[]       @relation("deleted_by")
+  distributors           distributors[]          @relation("created_by")
+  distributors2          distributors[]          @relation("updated_by")
+  distributors3          distributors[]          @relation("deleted_by")
+  invoices               invoices[]              @relation("created_by")
+  invoices2              invoices[]              @relation("updated_by")
+  invoices3              invoices[]              @relation("deleted_by")
+  detail_invoices        detail_invoices[]       @relation("created_by")
+  detail_invoices2       detail_invoices[]       @relation("updated_by")
+  detail_invoices3       detail_invoices[]       @relation("deleted_by")
+  transaction_invoices   transaction_invoices[]  @relation("created_by")
+  transaction_invoices2  transaction_invoices[]  @relation("updated_by")
+  transaction_invoices3  transaction_invoices[]  @relation("deleted_by")
+  return_invoices        return_invoices[]       @relation("created_by")
+  return_invoices2       return_invoices[]       @relation("updated_by")
+  return_invoices3       return_invoices[]       @relation("deleted_by")
+  order_invoices         order_invoices[]        @relation("created_by")
+  order_invoices2        order_invoices[]        @relation("updated_by")
+  order_invoices3        order_invoices[]        @relation("deleted_by")
+  detail_order_invoices  detail_order_invoices[] @relation("created_by")
+  detail_order_invoices2 detail_order_invoices[] @relation("updated_by")
+  detail_order_invoices3 detail_order_invoices[] @relation("deleted_by")
+  stocks                 stocks[]                @relation("created_by")
+  stocks2                stocks[]                @relation("updated_by")
+  stocks3                stocks[]                @relation("deleted_by")
+  detail_stocks          detail_stocks[]         @relation("created_by")
+  detail_stocks2         detail_stocks[]         @relation("updated_by")
+  detail_stocks3         detail_stocks[]         @relation("deleted_by")
+  history_stocks         history_stocks[]        @relation("created_by")
+  history_stocks2        history_stocks[]        @relation("updated_by")
+  history_stocks3        history_stocks[]        @relation("deleted_by")
+  sales                  sales[]                 @relation("created_by")
+  sales2                 sales[]                 @relation("updated_by")
+  sales3                 sales[]                 @relation("deleted_by")
+  detail_sales           detail_sales[]          @relation("created_by")
+  detail_sales2          detail_sales[]          @relation("updated_by")
+  detail_sales3          detail_sales[]          @relation("deleted_by")
+  transaction_sales      transaction_sales[]     @relation("created_by")
+  transaction_sales2     transaction_sales[]     @relation("updated_by")
+  transaction_sales3     transaction_sales[]     @relation("deleted_by")
+}
+
+model shapes {
+  id         Int       @id @default(autoincrement())
+  uid        String    @unique @default(uuid()) @db.Uuid
+  name       String    @db.VarChar(200)
+  created_at DateTime  @db.Timestamp(0)
+  updated_at DateTime  @db.Timestamp(0)
+  deleted_at DateTime? @db.Timestamp(0)
+  created_by Int
+  updated_by Int
+  deleted_by Int?
+  drugs      drugs[]
+  createdby  users     @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby  users     @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby  users?    @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
+}
+
+model types {
+  id         Int       @id @default(autoincrement())
+  uid        String    @unique @default(uuid()) @db.Uuid
+  name       String    @db.VarChar(200)
+  created_at DateTime  @db.Timestamp(0)
+  updated_at DateTime  @db.Timestamp(0)
+  deleted_at DateTime? @db.Timestamp(0)
+  created_by Int
+  updated_by Int
+  deleted_by Int?
+  drugs      drugs[]
+  createdby  users     @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby  users     @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby  users?    @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
+}
+
+model categories {
+  id         Int       @id @default(autoincrement())
+  uid        String    @unique @default(uuid()) @db.Uuid
+  name       String    @db.VarChar(200)
+  created_at DateTime  @db.Timestamp(0)
+  updated_at DateTime  @db.Timestamp(0)
+  deleted_at DateTime? @db.Timestamp(0)
+  created_by Int
+  updated_by Int
+  deleted_by Int?
+  drugs      drugs[]
+  createdby  users     @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby  users     @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby  users?    @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
+}
+
+model drugs {
+  id                    Int                     @id @default(autoincrement())
+  uid                   String                  @unique @default(uuid()) @db.Uuid
+  name                  String                  @db.VarChar(200)
+  shape_id              Int
+  type_id               Int
+  category_id           Int
+  note                  String?
+  created_at            DateTime                @db.Timestamp(0)
+  updated_at            DateTime                @db.Timestamp(0)
+  deleted_at            DateTime?               @db.Timestamp(0)
+  created_by            Int
+  updated_by            Int
+  deleted_by            Int?
+  stocks                stocks[]
+  detail_invoices       detail_invoices[]
+  detail_formulas       detail_formulas[]
+  detail_order_invoices detail_order_invoices[]
+  types                 types                   @relation(fields: [type_id], references: [id], onDelete: Cascade)
+  shapes                shapes                  @relation(fields: [shape_id], references: [id], onDelete: Cascade)
+  categories            categories              @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  createdby             users                   @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby             users                   @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby             users?                  @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
+}
+
+model formulas {
+  id              Int               @id @default(autoincrement())
+  uid             String            @unique @default(uuid()) @db.Uuid
+  name            String            @db.VarChar(200)
+  no_formula      Int
+  price           Int
+  description     String?
+  created_at      DateTime          @db.Timestamp(0)
+  updated_at      DateTime          @db.Timestamp(0)
+  deleted_at      DateTime?         @db.Timestamp(0)
+  created_by      Int
+  updated_by      Int
+  deleted_by      Int?
+  // temp_sales      temp_sales[]
+  detail_sales    detail_sales[]
+  detail_formulas detail_formulas[]
+  createdby       users             @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby       users             @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby       users?            @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
+}
+
+model detail_formulas {
+  id         Int       @id @default(autoincrement())
+  uid        String    @unique @default(uuid()) @db.Uuid
+  formula_id Int
+  drug_id    Int
+  qty_pcs    Int
+  created_at DateTime  @db.Timestamp(0)
+  updated_at DateTime  @db.Timestamp(0)
+  deleted_at DateTime? @db.Timestamp(0)
+  created_by Int
+  updated_by Int
+  deleted_by Int?
+  drugs      drugs     @relation(fields: [drug_id], references: [id], onDelete: Cascade)
+  formulas   formulas  @relation(fields: [formula_id], references: [id], onDelete: Cascade)
+  createdby  users     @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby  users     @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby  users?    @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
+}
+
+model distributors {
+  id              Int               @id @default(autoincrement())
+  uid             String            @unique @default(uuid()) @db.Uuid
+  name            String            @db.VarChar(200)
+  address         String            @db.VarChar(100)
+  phone           String            @db.VarChar(50)
+  no_permit       String            @db.VarChar(50)
+  contact_person  String            @db.VarChar(50)
+  created_at      DateTime          @db.Timestamp(0)
+  updated_at      DateTime          @db.Timestamp(0)
+  deleted_at      DateTime?         @db.Timestamp(0)
+  created_by      Int
+  updated_by      Int
+  deleted_by      Int?
+  invoices        invoices[]
+  return_invoices return_invoices[]
+  createdby       users             @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby       users             @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby       users?            @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
+}
+
+model invoices {
+  id                   Int                    @id @default(autoincrement())
+  uid                  String                 @unique @default(uuid()) @db.Uuid
+  distributor_id       Int
+  no_invoice           String                 @db.VarChar(191)
+  invoice_date         DateTime              @db.Date
+  receive_date         DateTime              @db.Date
+  total_invoice        Int
+  count_item           Int
+  due_date             DateTime              @db.Date
+  status               String                 @db.VarChar(191)
+  total_pay            Int
+  created_at           DateTime               @db.Timestamp(0)
+  updated_at           DateTime               @db.Timestamp(0)
+  deleted_at           DateTime?              @db.Timestamp(0)
+  created_by           Int
+  updated_by           Int
+  deleted_by           Int?
+  detail_invoices      detail_invoices[]
+  return_invoices      return_invoices[]
+  transaction_invoices transaction_invoices[]
+  distributors         distributors           @relation(fields: [distributor_id], references: [id], onDelete: Cascade)
+  createdby            users                  @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby            users                  @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby            users?                 @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
+}
+
+model detail_invoices {
+  id               Int               @id @default(autoincrement())
+  uid              String            @unique @default(uuid()) @db.Uuid
+  invoice_id       Int
+  drug_id          Int
+  no_batch         String           @db.VarChar(191)
+  expired_at       DateTime?         @db.Date
+  count_box        Int
+  qty_box          Int
+  price_box        Int
+  total_price      Int
+  discount         Float
+  discount_nominal Int
+  ppn              Int
+  ppn_nominal      Int
+  created_at       DateTime          @db.Timestamp(0)
+  updated_at       DateTime          @db.Timestamp(0)
+  deleted_at       DateTime?         @db.Timestamp(0)
+  created_by       Int
+  updated_by       Int
+  deleted_by       Int?
+  detail_stocks    detail_stocks[]
+  history_stocks   history_stocks[]
+  return_invoices  return_invoices[]
+  drugs            drugs             @relation(fields: [drug_id], references: [id], onDelete: Cascade)
+  invoices         invoices          @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+  createdby        users             @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby        users             @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby        users?            @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
+}
+
+model transaction_invoices {
+  id         Int       @id @default(autoincrement())
+  uid        String    @unique @default(uuid()) @db.Uuid
+  invoice_id Int
+  pay_date   DateTime  @db.Date
+  total_pay  Int
+  created_at DateTime  @db.Timestamp(0)
+  updated_at DateTime  @db.Timestamp(0)
+  deleted_at DateTime? @db.Timestamp(0)
+  created_by Int
+  updated_by Int
+  deleted_by Int?
+  invoices   invoices  @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+  createdby  users     @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby  users     @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby  users?    @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
+}
+
+model return_invoices {
+  id                Int              @id @default(autoincrement())
+  uid               String           @unique @default(uuid()) @db.Uuid
+  distributor_id    Int
+  invoice_id        Int
+  detail_invoice_id Int
+  return_date       DateTime?        @db.Date
+  qty_return        Int
+  total_return      Int
+  status            String           @db.VarChar(191)
+  confirm_date      DateTime?        @db.Date
+  created_at        DateTime         @db.Timestamp(0)
+  updated_at        DateTime         @db.Timestamp(0)
+  deleted_at        DateTime?        @db.Timestamp(0)
+  created_by        Int
+  updated_by        Int
+  deleted_by        Int?
+  history_stocks    history_stocks[]
+  invoices          invoices         @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+  distributors      distributors     @relation(fields: [distributor_id], references: [id], onDelete: Cascade)
+  detail_invoices   detail_invoices  @relation(fields: [detail_invoice_id], references: [id], onDelete: Cascade)
+  createdby         users            @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby         users            @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby         users?           @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
+}
+
+model order_invoices {
+  id                    Int                     @id @default(autoincrement())
+  uid                   String                  @unique @default(uuid()) @db.Uuid
+  distributor_id        Int
+  no_order              String                  @db.VarChar(191)
+  order_date            DateTime                @db.Date
+  count_item            Int
+  created_at            DateTime                @db.Timestamp(0)
+  updated_at            DateTime                @db.Timestamp(0)
+  deleted_at            DateTime?               @db.Timestamp(0)
+  created_by            Int
+  updated_by            Int
+  deleted_by            Int?
+  detail_order_invoices detail_order_invoices[]
+  createdby             users                   @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby             users                   @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby             users?                  @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
+}
+
+model detail_order_invoices {
+  id               Int            @id @default(autoincrement())
+  uid              String         @unique @default(uuid()) @db.Uuid
+  order_invoice_id Int
+  drug_id          Int
+  qty              Int
+  unit             String         @db.VarChar(191)
+  description      String?
+  created_at       DateTime       @db.Timestamp(0)
+  updated_at       DateTime       @db.Timestamp(0)
+  deleted_at       DateTime?      @db.Timestamp(0)
+  created_by       Int
+  updated_by       Int
+  deleted_by       Int?
+  drugs            drugs          @relation(fields: [drug_id], references: [id], onDelete: Cascade)
+  order_invoices   order_invoices @relation(fields: [order_invoice_id], references: [id], onDelete: Cascade)
+  createdby        users          @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby        users          @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby        users?         @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
+}
+
+model stocks {
+  id            Int             @id @default(autoincrement())
+  uid           String          @unique @default(uuid()) @db.Uuid
+  drug_id       Int
+  total_qty     Int
+  price         Int
+  price_buy     Int?
+  price_manual  Int             @default(0)
+  created_at    DateTime        @db.Timestamp(0)
+  updated_at    DateTime        @db.Timestamp(0)
+  deleted_at    DateTime?       @db.Timestamp(0)
+  created_by    Int
+  updated_by    Int
+  deleted_by    Int?
+  detail_stocks detail_stocks[]
+  drugs         drugs           @relation(fields: [drug_id], references: [id], onDelete: Cascade)
+  createdby     users           @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby     users           @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby     users?          @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
+}
+
+model detail_stocks {
+  id                Int              @id @default(autoincrement())
+  uid               String           @unique @default(uuid()) @db.Uuid
+  stock_id          Int
+  detail_invoice_id Int?
+  qty_pcs           Int
+  qty_box           Int?
+  expired_at        DateTime         @db.Date
+  no_barcode        String           @db.VarChar(191)
+  no_batch          String?          @db.VarChar(191)
+  is_initiate       Boolean          @default(false)
+  description       String?          @db.VarChar(191)
+  created_at        DateTime         @db.Timestamp(0)
+  updated_at        DateTime         @db.Timestamp(0)
+  deleted_at        DateTime?        @db.Timestamp(0)
+  created_by        Int
+  updated_by        Int
+  deleted_by        Int?
+  detail_sales      detail_sales[]
+  history_stocks    history_stocks[]
+  // temp_sales        temp_sales[]
+  stocks            stocks           @relation(fields: [stock_id], references: [id], onDelete: Cascade)
+  detail_invoices   detail_invoices? @relation(fields: [detail_invoice_id], references: [id], onDelete: Cascade)
+  createdby         users            @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby         users            @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby         users?           @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
+}
+
+model history_stocks {
+  id                Int              @id @default(autoincrement())
+  uid               String           @unique @default(uuid()) @db.Uuid
+  stock_id          Int
+  status            String?          @db.VarChar(191)
+  qty_pcs           Int
+  detail_invoice_id Int?
+  detail_stock_id   Int?
+  detail_sale_id    Int?
+  return_invoice_id Int?
+  reason            String?          @db.VarChar(191)
+  created_at        DateTime         @db.Timestamp(0)
+  updated_at        DateTime         @db.Timestamp(0)
+  deleted_at        DateTime?        @db.Timestamp(0)
+  created_by        Int
+  updated_by        Int
+  deleted_by        Int?
+  detail_sales      detail_sales?    @relation(fields: [detail_sale_id], references: [id], onDelete: Cascade)
+  detail_stocks     detail_stocks?   @relation(fields: [detail_stock_id], references: [id], onDelete: Cascade)
+  detail_invoices   detail_invoices? @relation(fields: [detail_invoice_id], references: [id], onDelete: Cascade)
+  return_invoices   return_invoices? @relation(fields: [return_invoice_id], references: [id], onDelete: Cascade)
+  createdby         users            @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby         users            @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby         users?           @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
+}
+
+model sales {
+  id                Int                 @id @default(autoincrement())
+  uid               String              @unique @default(uuid()) @db.Uuid
+  sale_date         DateTime            @db.Date
+  count_item        Int
+  total_sale        Int
+  description       String?
+  status            String              @db.VarChar(191)
+  total_pay         Int
+  customer_name     String?             @db.VarChar(191)
+  customer_address  String?             @db.VarChar(191)
+  customer_age      String?             @db.VarChar(191)
+  created_at        DateTime            @db.Timestamp(0)
+  updated_at        DateTime            @db.Timestamp(0)
+  deleted_at        DateTime?           @db.Timestamp(0)
+  created_by        Int
+  updated_by        Int
+  deleted_by        Int?
+  detail_sales      detail_sales[]
+  transaction_sales transaction_sales[]
+  createdby         users               @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby         users               @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby         users?              @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
+}
+
+model detail_sales {
+  id              Int              @id @default(autoincrement())
+  uid             String           @unique @default(uuid()) @db.Uuid
+  sale_id         Int
+  detail_stock_id Int?
+  qty_pcs         Int
+  price_pcs       Int
+  price_manual    Int?
+  total_price     Int
+  is_formula      Boolean          @default(false)
+  formula_id      Int?
+  created_at      DateTime         @db.Timestamp(0)
+  updated_at      DateTime         @db.Timestamp(0)
+  deleted_at      DateTime?        @db.Timestamp(0)
+  created_by      Int
+  updated_by      Int
+  deleted_by      Int?
+  history_stocks  history_stocks[]
+  sales           sales            @relation(fields: [sale_id], references: [id], onDelete: Cascade)
+  formulas        formulas?        @relation(fields: [formula_id], references: [id], onDelete: Cascade)
+  detail_stocks   detail_stocks?   @relation(fields: [detail_stock_id], references: [id], onDelete: Cascade)
+  createdby       users            @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby       users            @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby       users?           @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
+}
+
+model transaction_sales {
+  id         Int       @id @default(autoincrement())
+  uid        String    @unique @default(uuid()) @db.Uuid
+  sale_id    Int
+  pay_date   DateTime  @db.Date
+  total_pay  Int
+  created_at DateTime  @db.Timestamp(0)
+  updated_at DateTime  @db.Timestamp(0)
+  deleted_at DateTime? @db.Timestamp(0)
+  created_by Int
+  updated_by Int
+  deleted_by Int?
+  sales      sales     @relation(fields: [sale_id], references: [id], onDelete: Cascade)
+  createdby  users     @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby  users     @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby  users?    @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
+}
+
+model summary_transactions {
+  id               Int       @id @default(autoincrement())
+  uid              String    @unique @default(uuid()) @db.Uuid
+  transaction_date DateTime  @db.Date
+  revenue          Int //pendapatan kotor
+  expense          Int //pengeluaran
+  income           Int //pendapatan bersih
+  credit           Int //piutang
+  invoice          Int //invoice
+  saving           Int //discount
+  created_at       DateTime  @db.Timestamp(0)
+  updated_at       DateTime  @db.Timestamp(0)
+  deleted_at       DateTime? @db.Timestamp(0)
+}
