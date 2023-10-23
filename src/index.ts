@@ -9,7 +9,7 @@ import winston from "winston";
 import cookieParser from 'cookie-parser';
 
 // Routers
-import MainRoutes from "./routes/route";
+import MainRoutes from "./routes/_route";
 
 class App {
   public app: Application;
@@ -23,7 +23,16 @@ class App {
 
   protected initPlugins(): void {
     
-    // cos
+    // cors
+    const corsOptions ={
+      origin: ['http://localhost:8080', 'http://localhost:3000', 'http://localhost:3001'], 
+      // origin: '*',
+      // methods: '*',
+      credentials:true,            //access-control-allow-credentials:true
+      optionSuccessStatus:200,
+      // exposedHeaders: ["set-cookie"],
+    }
+
 
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: false }));
@@ -31,7 +40,7 @@ class App {
     // this.app.use(morgan("dev"));
     // this.app.use(compression());
     // this.app.use(helmet());
-    this.app.use(cors());
+    this.app.use(cors(corsOptions));
     this.app.use(cookieParser());
 
     winston.exceptions.handle(
@@ -54,12 +63,7 @@ class App {
   }
 
   protected initRoutes(): void {
-    this.app.route("/").get((req: Request, res: Response) => {
-      res.send("ini adalah route menggunakan TS");
-    });
-
-    this.app.use('/api',MainRoutes);
-    // this.app.use("/api/v1/todos", TodoRoutes);
+    this.app.use("/api", MainRoutes);
   }
 }
 

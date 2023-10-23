@@ -1,6 +1,8 @@
 import { PrismaClient } from "@prisma/client";
+import bcryptjs from 'bcryptjs';
 
 const prisma = new PrismaClient()
+
 
 async function main() {
 
@@ -78,6 +80,11 @@ async function main() {
   //   }
   // });
 
+  
+
+  const salt            = await bcryptjs.genSalt(10);
+  const encryptPassword = await bcryptjs.hash("onepiece", salt);
+
   const alice = await prisma.users.upsert({
     where: { email: 'arisu@alice.io' },
     update: {},
@@ -88,7 +95,7 @@ async function main() {
       sex              : 'm',
       email            : 'arisu@alice.io',
       email_verified_at: new Date('2022-02-09 11:00:00'),
-      password         : '',
+      password         : encryptPassword,
       created_at       : new Date('2022-02-09 11:00:00'),
       updated_at       : new Date('2022-02-09 11:00:00'),
       role_user        : {

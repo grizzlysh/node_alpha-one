@@ -1,70 +1,70 @@
-import Joi from 'joi';
+import Joi, { ref } from 'joi';
 import jwt, { JwtPayload, VerifyCallback, VerifyErrors } from 'jsonwebtoken';
 import bcryptjs from 'bcryptjs';
-import { Request, Response } from "express";
-import { PrismaClient } from '@prisma/client';
+import { Request, Response, response } from "express";
+import { PrismaClient, Prisma } from '@prisma/client';
 import { config as dotenv } from 'dotenv';
+import moment from 'moment';
 
 import UserOnline from '../entity/userOnline.entity';
-import InputInvalidException from '../exceptions/700_InputInvalid.exception';
-import AuthCredentialWrongException from '../exceptions/authCredentialWrong.exception';
-import BasicErrorException from '../exceptions/basicError.exception';
-import AuthTokenWrongException from '../exceptions/authTokenWrong.exception';
-
+import SuccessException from '../exceptions/200_success.exception';
+import InvalidInputException from '../exceptions/701_invalidInput.exception';
+import UserNotFoundException from '../exceptions/705_userNotFound.exception';
+import InvalidTokenException from '../exceptions/703_invalidToken.exception';
+import BasicErrorException from '../exceptions/700_basicError.exception';
+import UserAlreadyExistException from '../exceptions/704_userAlreadyExist.exception';
+import ResponseLogin from '../interfaces/auth/responseLogin.interface';
+import ResponseRegister from '../interfaces/auth/responseRegister.interface';
+import RequestLogin from '../interfaces/auth/requestLogin.interface';
+import RequestRegister from '../interfaces/auth/requestRegister.interface';
 
 dotenv();
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  log: ['query'],
+});
 
-type responseLogin = {
-  user        : UserOnline,
-  refreshToken: string
-  accessToken : string,
-}
-
-export async function signInHandler(req: Request, res: Response): Promise<Response> {
-
+export async function loginHandler(req: RequestLogin, res: Response): Promise<Response> {
   try {
     
     const schema = Joi.object({
-      username: Joi.string().min(3).max(30).required().messages({
-        // 'string.base' : `"username" should be a type of 'text'`,
-        'string.empty': `"username" cannot be an empty field`,
-        'string.min'  : `"username" should have a minimum length of {#limit}`,
-        'any.required': `"username" is a required field`
+      username: Joi.string().min(6).max(30).required().messages({
+        // 'string.base': `"a" should be a type of 'text'`,
+        'string.empty': `Username cannot be an empty field`,
+        // 'string.min': `Username should have a minimum length of 6`,
+        'any.required': `Username is a required field`
       }),
       password: Joi.string().min(6).max(200).required().messages({
-        // 'string.base' : `"username" should be a type of 'text'`,
-        'string.empty': `"password" cannot be an empty field`,
-        'string.min'  : `"password" should have a minimum length of {#limit}`,
-        'any.required': `"password" is a required field`
+        // 'string.base': `"a" should be a type of 'text'`,
+        'string.empty': `Password cannot be an empty field`,
+        // 'string.min': `Password should have a minimum length of 6`,
+        'any.required': `Password is a required field`
       }),
     });
 
     const { error } = schema.validate(req.body);
   
     if (error) {
-      const { status, message } = new InputInvalidException(error.message);
-      return res.status(status).send(message);
+      const exception = new InvalidInputException(error.message);
+      return res.send(exception.getResponse)
     }
     
     const { username, password } = req.body;
-  
+    
     const checkUser = await prisma.users.findUnique({
       where: {
         username: username,
       },
     })
-
     if (!checkUser) {
-      const { status, message } = new AuthCredentialWrongException();
-      return res.status(status).send(message);
+      const exception = new UserNotFoundException();
+      return res.send(exception.getResponse)
     }
   
     const validPassword = await bcryptjs.compare(password, checkUser.password);
     
     if (!validPassword){
-      const { status, message } = new AuthCredentialWrongException();
-      return res.status(status).send(message);
+      const exception = new InvalidInputException("Wrong Password");
+      return res.send(exception.getResponse)
     }
   
     let userOnline: UserOnline = {
@@ -77,8 +77,8 @@ export async function signInHandler(req: Request, res: Response): Promise<Respon
     
     const jwtSecretKey: jwt.Secret  = process.env.JWT_SECRET_KEY || 'S0M3WH3R3';
     const jwtRefreshKey: jwt.Secret = process.env.JWT_REFRESH_KEY || 'S0M3WH3R3';
-    const accessToken               = jwt.sign(userOnline, jwtSecretKey, { expiresIn: '5m' });
-    const refreshToken              = jwt.sign(userOnline, jwtRefreshKey, { expiresIn: '7m' });
+    const accessToken               = jwt.sign(userOnline, jwtSecretKey, { expiresIn: '90m' });
+    const refreshToken              = jwt.sign(userOnline, jwtRefreshKey, { expiresIn: '100m' });
   
     res.cookie('refresh_token', refreshToken, { 
       // httpOnly: true,
@@ -89,23 +89,21 @@ export async function signInHandler(req: Request, res: Response): Promise<Respon
       // useCredentials: true
     });
 
-    let responseData: responseLogin = {
+    const loginData: ResponseLogin = {
       user        : userOnline,
       accessToken : accessToken,
       refreshToken: refreshToken
     }
-  
-    return res.send(responseData);
+    const responseData = new SuccessException("Login Success", loginData)
+    return res.send(responseData.getResponse);
 
-  } catch (error) {
-    
-    const { status, message } = new BasicErrorException();
-    return res.status(status).send(message);
-
+  } catch (e: any) {
+    const exception = new BasicErrorException(e.message);
+    return res.send(exception.getResponse)
   }
 }
 
-export async function refreshTokenHandler(req: Request, res: Response) {
+export async function refreshTokenHandler(req: Request, res: Response): Promise<Response> {
 
   try {
     
@@ -118,7 +116,8 @@ export async function refreshTokenHandler(req: Request, res: Response) {
 
       jwt.verify(refreshToken, jwtRefreshKey, (err: VerifyErrors | null, payload: any) => {
         if (err) {
-          return res.status(402).send({ message: err.message });
+          const exception = new InvalidTokenException(err.message)
+          return res.status(402).send(exception.getResponse)
         }
         else {
           let userOnline: UserOnline = {
@@ -130,41 +129,73 @@ export async function refreshTokenHandler(req: Request, res: Response) {
           }
   
           const accessToken = jwt.sign(userOnline, jwtSecretKey, { expiresIn: '1m' });
-          return res.send(accessToken);
+          
+          const refreshData: ResponseLogin = {
+            user        : userOnline,
+            accessToken : accessToken,
+            refreshToken: ""
+          }
+          
+          const responseData = new SuccessException("Refresh Success", refreshData)
+          return res.send(responseData.getResponse);
         }
       })
+      const exception = new BasicErrorException();
+      return res.send(exception.getResponse)
     }
     else{
-      const { status, message } = new AuthTokenWrongException();
-      return res.status(status).send(message);
+      const exception = new InvalidTokenException();
+      return res.send(exception.getResponse)
     }
-
-
-  } catch (error) {
-    
-    const { status, message } = new BasicErrorException();
-    return res.status(status).send(message);
-
+  } catch (e: any) {
+    const exception = new BasicErrorException(e.message);
+    return res.send(exception.getResponse)
   }
 
 }
 
-export async function signUpHandler(req: Request, res: Response) {
+export async function registerHandler(req: RequestRegister, res: Response): Promise<Response> {
   
   try {
     const schema = Joi.object({
-      username: Joi.string().min(3).max(30).required(),
-      name    : Joi.string().min(3).max(30).required(),
-      sex     : Joi.string().min(1).max(1).required(),
-      email   : Joi.string().min(3).max(200).required().email(),
-      password: Joi.string().min(6).max(200).required(),
+      username: Joi.string().min(6).max(30).required().messages({
+        // 'string.base': `"a" should be a type of 'text'`,
+        'string.empty': `Username cannot be an empty field`,
+        'string.min': `Username should have a minimum length of 6`,
+        'any.required': `Username is a required field`
+      }),
+      name    : Joi.string().min(3).max(30).required().messages({
+        // 'string.base': `"a" should be a type of 'text'`,
+        'string.empty': `Name cannot be an empty field`,
+        'string.min': `Name should have a minimum length of 6`,
+        'any.required': `Name is a required field`
+      }),
+      sex     : Joi.string().min(1).max(1).required().messages({
+        // 'string.base': `"a" should be a type of 'text'`,
+        'string.empty': `Sex cannot be an empty field`,
+        // 'string.min': `Sex should have a minimum length of 6`,
+        'any.required': `Sex is a required field`
+      }),
+      email   : Joi.string().min(3).max(200).required().email().messages({
+        // 'string.base': `"a" should be a type of 'text'`,
+        'string.empty': `Email cannot be an empty field`,
+        // 'string.min': `Email should have a minimum length of 6`,
+        'string.email': `Email is not valid format`,
+        'any.required': `Email is a required field`
+      }),
+      password: Joi.string().min(6).max(200).required().messages({
+        // 'string.base': `"a" should be a type of 'text'`,
+        'string.empty': `Password cannot be an empty field`,
+        'string.min': `Password should have a minimum length of 6`,
+        'any.required': `Password is a required field`
+      }),
     });
 
     const { error } = schema.validate(req.body);
 
     if (error) {
-      const { status, message } = new AuthCredentialWrongException();
-      return res.status(status).send(error.message);
+      const exception = new InvalidInputException(error.message);
+      return res.send(exception.getResponse)
     }
 
     const { username, name, sex, email, password } = req.body;
@@ -176,8 +207,8 @@ export async function signUpHandler(req: Request, res: Response) {
     })
 
     if (checkUser) {
-      const { status, message } = new AuthCredentialWrongException();
-      return res.status(status).send("User already exists...");
+      const exception = new UserAlreadyExistException();
+      return res.send(exception.getResponse)
     }
 
     const salt            = await bcryptjs.genSalt(10);
@@ -192,9 +223,8 @@ export async function signUpHandler(req: Request, res: Response) {
           sex       : sex,
           email     : email,
           password  : encryptPassword,
-          created_at: new Date('2022-01-21 10:00:00'),
-          updated_at: new Date('2022-01-21 10:00:00'),
-          // updated_at: '2022-01-21 10:00:00',
+          created_at: moment().format().toString(),
+          updated_at: moment().format().toString(),
           created_by: 1,
           updated_by: 1,
           role_user : {
@@ -209,25 +239,42 @@ export async function signUpHandler(req: Request, res: Response) {
         },
       });
       
-
-      res.send(user);
-
-    } catch (e: any) {
-      
-      if (e.code === 'P2002') {
-        console.log(
-          'There is a unique constraint violation, a new user cannot be created with this email'
-        )
+      let userOnline: UserOnline = {
+        uid     : user.uid,
+        username: user.username,
+        name    : user.name,
+        sex     : user.sex,
+        email   : user.email,
       }
-      // throw e;
-      console.log(e.code);
-      let { status, message } = new BasicErrorException();
-      return res.status(status).send(e.message);
+
+      const registerData: ResponseRegister = {
+        user: userOnline,
+      }
+
+      const responseData = new SuccessException("Register Success", registerData)
+      return res.send(responseData.getResponse);
+
+    } catch (err: any) {
+      let message: string = "";
+      if (err instanceof Prisma.PrismaClientKnownRequestError){
+        if (err.code === 'P2002') {
+          console.log("There is a unique constraint violation, a new user cannot be created with this email")
+          message = "There is a unique constraint violation, a new user cannot be created with this email"
+        }
+        else{
+          // throw e;
+          console.log(err.code);
+          message = err.message;
+        }
+      }
+      // let errorMessage = message == null ? e.message : message;
+      let exception= new BasicErrorException(message);
+      return res.send(exception.getResponse)
     }
 
-  } catch (error) {
-    let { status, message } = new BasicErrorException();
-    return res.status(status).send(message);
+  } catch (e: any) {
+    let exception= new BasicErrorException(e.message);
+    return res.send(exception.getResponse)
   }
 
 }

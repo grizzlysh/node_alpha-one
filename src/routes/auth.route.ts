@@ -1,13 +1,13 @@
 import express from 'express';
-import { refreshTokenHandler, signInHandler, signUpHandler } from '../controllers/auth.controller';
+import { refreshTokenHandler, loginHandler, registerHandler } from '../controllers/auth.controller';
 
 const AuthRoutes = express.Router();
 
 // register users
-AuthRoutes.post('/register', signUpHandler);
+AuthRoutes.post('/register', registerHandler);
 
 // login user
-AuthRoutes.post('/login', signInHandler);
+AuthRoutes.post('/login', loginHandler);
 
 // refresh access token
 AuthRoutes.get('/refresh', refreshTokenHandler);

@@ -7,6 +7,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rd /s /q \"build/\" && tsc",
     "buildw": "rd /s /q \"build/\" && tsc -w",
+    "db": "npx prisma generate",
+    "migrate": "npx prisma migrate dev --name init",
+    "seed": "npx prisma db seed",
     "dev": "npx ts-node src/index.ts"
   },
   "prisma": {
@@ -36,6 +39,7 @@
     "express": "^4.18.2",
     "joi": "^17.8.3",
     "jsonwebtoken": "^9.0.0",
+    "moment": "^2.29.4",
     "winston": "^3.8.2"
   }
 }
