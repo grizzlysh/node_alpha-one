@@ -1,7 +1,10 @@
 import { Request } from "express";
 
-interface RequestCreateUser extends Request {
-  body: {
+interface RequestEditUser extends Request {
+  params: {
+    username: string,
+  },
+  body  : {
     username        : string,
     name            : string,
     sex             : string,
@@ -12,4 +15,4 @@ interface RequestCreateUser extends Request {
   }
 }
 
-export default RequestCreateUser;
+export default RequestEditUser;

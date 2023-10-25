@@ -17,8 +17,8 @@ interface UserData{
   },
 }
 
-interface ResponseGetUser {
-  data: UserData[]
+interface ResponseGetUserByID {
+  data: UserData
 }
 
-export default ResponseGetUser;
+export default ResponseGetUserByID;

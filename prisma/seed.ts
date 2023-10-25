@@ -98,13 +98,9 @@ async function main() {
       password         : encryptPassword,
       created_at       : new Date('2022-02-09 11:00:00'),
       updated_at       : new Date('2022-02-09 11:00:00'),
-      role_user        : {
-        create : {
-          roles: {
-            connect: {
-              id: rol.id 
-            }
-          }
+      role : {
+        connect : {
+          id: rol.id
         }
       }
     },

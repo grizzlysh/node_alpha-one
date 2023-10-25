@@ -11,12 +11,12 @@ UserRoutes.post('/', checkJwt, createUser);
 UserRoutes.get('/', checkJwt, getUser);
 
 // get user by id
-UserRoutes.get('/:id', checkJwt, getUserById);
+UserRoutes.get('/:username', checkJwt, getUserById);
 
 // edit user by id
-UserRoutes.put('/s:id', checkJwt, editUser);
+UserRoutes.put('/:username', checkJwt, editUser);
 
 // delete user by id
-UserRoutes.put('/s:id', checkJwt, deleteUser);
+UserRoutes.delete('/:username', checkJwt, deleteUser);
 
 export default UserRoutes;

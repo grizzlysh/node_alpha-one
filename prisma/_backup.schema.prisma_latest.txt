@@ -29,6 +29,15 @@ model permission_role {
   @@id([permission_id, role_id])
 }
 
+model role_user {
+  user_id Int
+  role_id Int
+  roles   roles @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  users   users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@id([user_id, role_id])
+}
+
 model permissions {
   id              Int               @id @default(autoincrement())
   uid             String            @unique @default(uuid()) @db.Uuid
@@ -49,7 +58,7 @@ model roles {
   created_at      DateTime          @db.Timestamp(0)
   updated_at      DateTime          @db.Timestamp(0)
   permission_role permission_role[]
-  users           users[]           @relation("user_role")
+  role_user       role_user[]
 }
 
 model users {
@@ -64,11 +73,10 @@ model users {
   created_at              DateTime?               @db.Timestamp(0)
   updated_at              DateTime?               @db.Timestamp(0)
   deleted_at              DateTime?               @db.Timestamp(0)
-  role_id                 Int
   created_by              Int?
   updated_by              Int?
   deleted_by              Int?
-  role                    roles                  @relation(name: "user_role", fields: [role_id], references: [id], onDelete: NoAction)
+  role_user               role_user[]
   createdby               users?                  @relation("user_created", fields: [created_by], references: [id], onDelete: NoAction)
   updatedby               users?                  @relation("user_updated", fields: [updated_by], references: [id], onDelete: NoAction)
   deletedby               users?                  @relation("user_deleted", fields: [deleted_by], references: [id], onDelete: NoAction)

@@ -1,16 +1,12 @@
-import { Query } from "express-serve-static-core"
+import { Request } from "express";
 
-interface RequestGetUserType<Q extends Query> extends Express.Request {
-  query: Q
-}
-
-interface RequestGetUser extends RequestGetUserType<{
-  asda: string,
-  page: string,
-  size: string,
-  cond: string
-}>{
-
+interface RequestGetUser extends Request{
+  query: {
+    asda: string,
+    page: string,
+    size: string,
+    cond: string
+  }
 }
 
 export default RequestGetUser;

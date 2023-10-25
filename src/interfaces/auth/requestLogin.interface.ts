@@ -1,5 +1,6 @@
+import { Request } from "express";
 
-interface RequestLogin extends Express.Request {
+interface RequestLogin extends Request {
   body: {
     username: string,
     password: string,

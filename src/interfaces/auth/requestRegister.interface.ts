@@ -1,5 +1,5 @@
-
-interface RequestRegister extends Express.Request {
+import { Request } from "express";
+interface RequestRegister extends Request {
   body: {
     username   : string,
     name       : string,

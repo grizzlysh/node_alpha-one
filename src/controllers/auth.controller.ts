@@ -217,7 +217,6 @@ export async function registerHandler(req: RequestRegister, res: Response): Prom
     try {
       let user = await prisma.users.create({
         data: {
-          // uid       : 'asdasdasdad',
           username  : username,
           name      : name,
           sex       : sex,
@@ -225,15 +224,19 @@ export async function registerHandler(req: RequestRegister, res: Response): Prom
           password  : encryptPassword,
           created_at: moment().format().toString(),
           updated_at: moment().format().toString(),
-          created_by: 1,
-          updated_by: 1,
-          role_user : {
-            create : {
-              roles: {
-                connect: {
-                  id: 1
-                }
-              }
+          createdby: {
+            connect: {
+              id: 1
+            }
+          },
+          updatedby: {
+            connect: {
+              id: 1
+            }
+          },
+          role      : {
+            connect :{
+              id: 1
             }
           }
         },
