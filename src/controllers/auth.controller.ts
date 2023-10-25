@@ -48,12 +48,32 @@ export async function loginHandler(req: RequestLogin, res: Response): Promise<Re
       return res.send(exception.getResponse)
     }
     
-    const { username, password } = req.body;
+    const inputData = req.body;
+    const username  = inputData.username.trim();
+    const password  = inputData.username.trim();
     
-    const checkUser = await prisma.users.findUnique({
+    const checkUser= await prisma.users.findFirst({
       where: {
-        username: username,
+        AND: [
+          {username: username,},
+          {deleted_at: undefined},
+        ]
       },
+      select: {
+        uid              : true,
+        username         : true,
+        name             : true,
+        sex              : true,
+        password         : true,
+        email            : true,
+        email_verified_at: true,
+        role             : {
+          select : {
+            uid : true,
+            name: true,
+          }
+        }
+      }
     })
     if (!checkUser) {
       const exception = new UserNotFoundException();
@@ -73,6 +93,10 @@ export async function loginHandler(req: RequestLogin, res: Response): Promise<Re
       name    : checkUser.name,
       sex     : checkUser.sex,
       email   : checkUser.email,
+      role    : {
+        uid : checkUser.role.uid,
+        name: checkUser.role.name,
+      },
     }
     
     const jwtSecretKey: jwt.Secret  = process.env.JWT_SECRET_KEY || 'S0M3WH3R3';
@@ -109,7 +133,7 @@ export async function refreshTokenHandler(req: Request, res: Response): Promise<
     
     if (req.body.refreshToken) {
 
-      const refreshToken = req.body.refreshToken;
+      const refreshToken = req.body.refreshToken.trim();
 
       const jwtSecretKey: jwt.Secret  = process.env.TODO_APP_JWT_SECRET_KEY || 'S0M3WH3R3';
       const jwtRefreshKey: jwt.Secret = process.env.TODO_APP_JWT_REFRESH_KEY || 'S0M3WH3R3';
@@ -126,6 +150,10 @@ export async function refreshTokenHandler(req: Request, res: Response): Promise<
             name    : payload.name,
             sex     : payload.sex,
             email   : payload.email,
+            role : {
+              uid : payload.role.uid,
+              name: payload.role.name,
+            }
           }
   
           const accessToken = jwt.sign(userOnline, jwtSecretKey, { expiresIn: '1m' });
@@ -164,16 +192,16 @@ export async function registerHandler(req: RequestRegister, res: Response): Prom
         'string.min': `Username should have a minimum length of 6`,
         'any.required': `Username is a required field`
       }),
-      name    : Joi.string().min(3).max(30).required().messages({
+      name    : Joi.string().min(1).max(30).required().messages({
         // 'string.base': `"a" should be a type of 'text'`,
         'string.empty': `Name cannot be an empty field`,
-        'string.min': `Name should have a minimum length of 6`,
+        'string.min': `Name should have a minimum length of 1`,
         'any.required': `Name is a required field`
       }),
       sex     : Joi.string().min(1).max(1).required().messages({
         // 'string.base': `"a" should be a type of 'text'`,
         'string.empty': `Sex cannot be an empty field`,
-        // 'string.min': `Sex should have a minimum length of 6`,
+        'string.min': `Sex should have a minimum length of 1`,
         'any.required': `Sex is a required field`
       }),
       email   : Joi.string().min(3).max(200).required().email().messages({
@@ -198,11 +226,20 @@ export async function registerHandler(req: RequestRegister, res: Response): Prom
       return res.send(exception.getResponse)
     }
 
-    const { username, name, sex, email, password } = req.body;
+    const inputData = req.body;
+    const username  = inputData.username.trim();
+    const name      = inputData.name.trim();
+    const sex       = inputData.sex.trim();
+    const email     = inputData.email.trim();
+    const password  = inputData.password.trim();
 
-    const checkUser = await prisma.users.findUnique({
+
+    const checkUser = await prisma.users.findFirst({
       where: {
-        username: username,
+        AND: [
+          {username: username,},
+          {deleted_at: undefined},
+        ]
       },
     })
 
@@ -240,6 +277,21 @@ export async function registerHandler(req: RequestRegister, res: Response): Prom
             }
           }
         },
+        select: {
+          uid              : true,
+          username         : true,
+          name             : true,
+          sex              : true,
+          password         : true,
+          email            : true,
+          email_verified_at: true,
+          role             : {
+            select : {
+              uid : true,
+              name: true,
+            }
+          }
+        }
       });
       
       let userOnline: UserOnline = {
@@ -248,6 +300,10 @@ export async function registerHandler(req: RequestRegister, res: Response): Prom
         name    : user.name,
         sex     : user.sex,
         email   : user.email,
+        role : {
+          uid : user.role.uid,
+          name: user.role.name,
+        }
       }
 
       const registerData: ResponseRegister = {

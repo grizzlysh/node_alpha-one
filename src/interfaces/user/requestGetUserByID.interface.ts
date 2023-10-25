@@ -1,13 +1,9 @@
-import { Params } from "express-serve-static-core"
+import { Request } from "express";
 
-interface RequestGetUserByIDType<P extends Params> extends Express.Request {
-  params: P
-}
-
-interface RequestGetUserByID extends RequestGetUserByIDType<{
-  username: string
-}>{
-
+interface RequestGetUserByID extends Request {
+  params: {
+    username: string,
+  },
 }
 
 export default RequestGetUserByID;

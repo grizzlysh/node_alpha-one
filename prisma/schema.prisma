@@ -33,10 +33,17 @@ model permissions {
   id              Int               @id @default(autoincrement())
   uid             String            @unique @default(uuid()) @db.Uuid
   name            String            @unique @db.VarChar(191)
-  display_name    String?           @db.VarChar(191)
-  description     String?           @db.VarChar(191)
+  display_name    String?           @unique @db.VarChar(191)
+  description     String?           @db.Text
   created_at      DateTime          @db.Timestamp(0)
   updated_at      DateTime          @db.Timestamp(0)
+  deleted_at      DateTime?         @db.Timestamp(0)
+  created_by      Int?
+  updated_by      Int?
+  deleted_by      Int?
+  createdby       users?             @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby       users?             @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby       users?            @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
   permission_role permission_role[]
 }
 
@@ -45,9 +52,16 @@ model roles {
   uid             String            @unique @default(uuid()) @db.Uuid
   name            String            @unique @db.VarChar(191)
   display_name    String?           @db.VarChar(191)
-  description     String?           @db.VarChar(191)
+  description     String?           @db.Text
   created_at      DateTime          @db.Timestamp(0)
   updated_at      DateTime          @db.Timestamp(0)
+  deleted_at      DateTime?         @db.Timestamp(0)
+  created_by      Int?
+  updated_by      Int?
+  deleted_by      Int?
+  createdby       users?             @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby       users?            @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby       users?            @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
   permission_role permission_role[]
   users           users[]           @relation("user_role")
 }
@@ -68,13 +82,19 @@ model users {
   created_by              Int?
   updated_by              Int?
   deleted_by              Int?
-  role                    roles                  @relation(name: "user_role", fields: [role_id], references: [id], onDelete: NoAction)
+  role                    roles                   @relation(name: "user_role", fields: [role_id], references: [id], onDelete: NoAction)
   createdby               users?                  @relation("user_created", fields: [created_by], references: [id], onDelete: NoAction)
   updatedby               users?                  @relation("user_updated", fields: [updated_by], references: [id], onDelete: NoAction)
   deletedby               users?                  @relation("user_deleted", fields: [deleted_by], references: [id], onDelete: NoAction)
   users_c                 users[]                 @relation("user_created")
   users_u                 users[]                 @relation("user_updated")
   users_d                 users[]                 @relation("user_deleted")
+  permissions_c           permissions[]           @relation("created_by")
+  permissions_u           permissions[]           @relation("updated_by")
+  permissions_d           permissions[]           @relation("deleted_by")
+  roles_c                 roles[]                 @relation("created_by")
+  roles_u                 roles[]                 @relation("updated_by")
+  roles_d                 roles[]                 @relation("deleted_by")
   shapes_c                shapes[]                @relation("created_by")
   shapes_u                shapes[]                @relation("updated_by")
   shapes_d                shapes[]                @relation("deleted_by")
@@ -214,7 +234,7 @@ model formulas {
   name            String            @db.VarChar(200)
   no_formula      Int
   price           Int
-  description     String?
+  description     String?           @db.Text
   created_at      DateTime          @db.Timestamp(0)
   updated_at      DateTime          @db.Timestamp(0)
   deleted_at      DateTime?         @db.Timestamp(0)
@@ -397,7 +417,7 @@ model detail_order_invoices {
   drug_id          Int
   qty              Int
   unit             String         @db.VarChar(191)
-  description      String?
+  description      String?        @db.Text
   created_at       DateTime       @db.Timestamp(0)
   updated_at       DateTime       @db.Timestamp(0)
   deleted_at       DateTime?      @db.Timestamp(0)
@@ -443,7 +463,7 @@ model detail_stocks {
   no_barcode        String           @db.VarChar(191)
   no_batch          String?          @db.VarChar(191)
   is_initiate       Boolean          @default(false)
-  description       String?          @db.VarChar(191)
+  description       String?          @db.Text
   created_at        DateTime         @db.Timestamp(0)
   updated_at        DateTime         @db.Timestamp(0)
   deleted_at        DateTime?        @db.Timestamp(0)
@@ -492,7 +512,7 @@ model sales {
   sale_date         DateTime            @db.Date
   count_item        Int
   total_sale        Int
-  description       String?
+  description       String?             @db.Text
   status            String              @db.VarChar(191)
   total_pay         Int
   customer_name     String?             @db.VarChar(191)

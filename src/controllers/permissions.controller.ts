@@ -19,51 +19,27 @@ import RequestGetUserByID from '../interfaces/user/requestGetUserByID.interface'
 import ResponseGetUserByID from '../interfaces/user/responseGetUserByID.interface';
 import RequestEditUser from '../interfaces/user/requestEditUser.interface';
 import RequestDeleteUser from '../interfaces/user/requestDeleteUser.interface';
+import PermissionAlreadyExistException from '../exceptions/707_permissionAlreadyExist.exception';
 
 const prisma = new PrismaClient({
   log: ['query'],
 });
 
-export async function createUser(req: RequestCreateUser, res: Response): Promise<Response> {
+export async function createPermission(req: Request, res: Response): Promise<Response> {
   
   try {
     const schema = Joi.object({
-      username: Joi.string().min(6).max(30).required().messages({
+      display_name    : Joi.string().min(4).max(30).required().messages({
         // 'string.base': `"a" should be a type of 'text'`,
-        'string.empty': `Username cannot be an empty field`,
-        'string.min': `Username should have a minimum length of 6`,
-        'any.required': `Username is a required field`
+        'string.empty': `Display Name cannot be an empty field`,
+        'string.min': `Display Name should have a minimum length of 4`,
+        'any.required': `Display Name is a required field`
       }),
-      name    : Joi.string().min(1).max(30).required().messages({
-        // 'string.base': `"a" should be a type of 'text'`,
-        'string.empty': `Name cannot be an empty field`,
-        'string.min': `Name should have a minimum length of 1`,
-        'any.required': `Name is a required field`
-      }),
-      sex     : Joi.string().min(1).max(1).required().messages({
+      description     : Joi.string().max(100).required().messages({
         // 'string.base': `"a" should be a type of 'text'`,
         'string.empty': `Sex cannot be an empty field`,
         // 'string.min': `Sex should have a minimum length of 6`,
         'any.required': `Sex is a required field`
-      }),
-      email   : Joi.string().min(3).max(200).required().email().messages({
-        // 'string.base': `"a" should be a type of 'text'`,
-        'string.empty': `Email cannot be an empty field`,
-        // 'string.min': `Email should have a minimum length of 6`,
-        'string.email': `Email is not valid format`,
-        'any.required': `Email is a required field`
-      }),
-      password: Joi.string().min(6).max(200).required().messages({
-        // 'string.base': `"a" should be a type of 'text'`,
-        'string.empty': `Password cannot be an empty field`,
-        'string.min': `Password should have a minimum length of 6`,
-        'any.required': `Password is a required field`
-      }),
-      role_uid: Joi.string().required().messages({
-        // 'string.base': `"a" should be a type of 'text'`,
-        'string.empty': `Role cannot be an empty field`,
-        // 'string.min': `Password should have a minimum length of 6`,
-        'any.required': `Role is a required field`
       }),
       current_user_uid: Joi.string().min(36).max(36),
     });
@@ -76,56 +52,24 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
     }
 
     const inputData        = req.body;
-    const username         = inputData.username.trim();
-    const name             = inputData.name.trim();
-    const sex              = inputData.sex.trim();
-    const email            = inputData.email.trim();
-    const password         = inputData.password.trim();
+    const display_name     = inputData.display_name.trim();
+    const description      = inputData.description.trim();
     const current_user_uid = inputData.current_user_uid.trim();
-    const role_uid         = inputData.role_uid.trim();
 
-    const checkUser = await prisma.users.findFirst({
+    const checkPermission = await prisma.permissions.findFirst({
       where: {
         AND: [
-          {username: username,},
+          {display_name: display_name,},
           {deleted_at: undefined,},
         ]
       },
     })
 
-    if (checkUser) {
-      const exception = new UserAlreadyExistException("Username Already Exist");
+    if (checkPermission) {
+      const exception = new PermissionAlreadyExistException("Permission Name Already Exist");
       return res.send(exception.getResponse);
     }
 
-    const checkEmail = await prisma.users.findFirst({
-      where: {
-        AND: [
-          {email: email,},
-          {deleted_at: undefined,},
-        ]
-      },
-    })
-
-    if (checkEmail) {
-      const exception = new UserAlreadyExistException("Email Already Exist");
-      return res.send(exception.getResponse);
-    }
-    
-    const roleUser =  await prisma.roles.findFirst({
-      where: {
-        AND: [
-          {uid: role_uid,},
-          {deleted_at: undefined,},
-        ]
-      },
-    })
-
-    if (!roleUser) {
-      const exception = new RoleNotFoundException();
-      return res.send(exception.getResponse)
-    }
-    
     const currentUser = await prisma.users.findFirst({
       where: {
         AND: [
@@ -135,20 +79,17 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
       },
     })
 
-    const salt            = await bcryptjs.genSalt(10);
-    const encryptPassword = await bcryptjs.hash(password, salt);
-    
+    let nameFormat = display_name.replace(/\s+/g, '-');
+
     try {
-      let user = await prisma.users.create({
+      let permission = await prisma.permissions.create({
         data: {
-          username  : username,
-          name      : name,
-          sex       : sex,
-          email     : email,
-          password  : encryptPassword,
-          created_at: moment().format().toString(),
-          updated_at: moment().format().toString(),
-          createdby : {
+          name        : nameFormat,
+          display_name: display_name,
+          description : description,
+          created_at  : moment().format().toString(),
+          updated_at  : moment().format().toString(),
+          createdby   : {
             connect: {
               id: currentUser?.id
             }
@@ -158,15 +99,10 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
               id: currentUser?.id
             }
           },
-          role: {
-            connect : {
-              id: roleUser.id
-            }
-          }
         },
       });
       
-      const responseData = new SuccessException("User created successfully")
+      const responseData = new SuccessException("Permission created successfully")
 
       return res.send(responseData)
 
@@ -194,45 +130,38 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
 
 }
 
-export async function getUser(req: RequestGetUser, res: Response): Promise<Response> {
+export async function getPermission(req: Request, res: Response): Promise<Response> {
   try {
     const { page, size, cond } = req.query;
     const condition            = cond ? cond : undefined;
     const { limit, offset }    = getPagination(page, size);
 
-    const userList = await prisma.users.findMany({
+    console.log(cond)
+    console.log(condition)
+    console.log(condition)
+    console.log(condition ? { name: {contains: condition?.toString()} } : {})
+
+    const permissionList = await prisma.permissions.findMany({
       skip: offset,
       take: limit,
       where: {
         AND:[
-          {deleted_at: undefined,},
-          {...( condition ? {OR: [
-            {email     : {contains: condition},},
-            {username  : {contains: condition},},
-            {name      : {contains: condition},},
-          ]} : {} )}
+          {deleted_at: null,},
+          {...( condition ? { name: {contains: condition?.toString()} } : {} )}
         ]
       },
       orderBy: {
         name: 'asc',
       },
       select: {
-        uid              : true,
-        username         : true,
-        name             : true,
-        sex              : true,
-        email            : true,
-        email_verified_at: true,
-        role: {
-          select: {
-            uid : true,
-            name: true,
-          }
-        },
-        created_at       : true,
-        updated_at       : true,
-        deleted_at       : true,
-        createdby        : {
+        uid         : true,
+        name        : true,
+        display_name: true,
+        description : true,
+        created_at  : true,
+        updated_at  : true,
+        deleted_at  : true,
+        createdby   : {
           select: {
             name: true
           }
@@ -250,11 +179,11 @@ export async function getUser(req: RequestGetUser, res: Response): Promise<Respo
       }
     });
     
-    const getUserData: ResponseGetUser = {
-      data: userList
+    const getPermissionData = {
+      data: permissionList
     }
     
-    const responseData = new SuccessException("User Data received", getUserData)
+    const responseData = new SuccessException("User Data received", getPermissionData)
 
     return res.send(responseData)
 
@@ -344,7 +273,7 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
       current_user_uid: inputData.current_user_uid.trim(),
       role_uid        : inputData.role_uid.trim(),
     }
-    let isEmailUpdated = false;
+    let   email_updated    = false;
 
     const schema = Joi.object({
       username: Joi.string().min(6).max(30).messages({
@@ -352,9 +281,9 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
         'string.min': `Username should have a minimum length of 6`,
         'any.required': `Username is a required field`
       }),
-      name    : Joi.string().min(1).max(30).required().messages({
+      name    : Joi.string().min(3).max(30).required().messages({
         'string.empty': `Name cannot be an empty field`,
-        'string.min': `Name should have a minimum length of 1`,
+        'string.min': `Name should have a minimum length of 6`,
         'any.required': `Name is a required field`
       }),
       sex     : Joi.string().min(1).max(1).required().messages({
@@ -440,7 +369,7 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
         return res.send(exception.getResponse);
       }
 
-      isEmailUpdated = true;
+      email_updated = true;
     }
     
     const roleUser =  await prisma.roles.findFirst({
@@ -480,7 +409,7 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
           sex              : editUser.sex,
           email            : editUser.email,
           password         : encryptPassword,
-          email_verified_at: isEmailUpdated ? null : checkUser?.email_verified_at,
+          email_verified_at: email_updated ? null : checkUser?.email_verified_at,
           updated_at       : moment().format().toString(),
           updatedby        : {
             connect : {

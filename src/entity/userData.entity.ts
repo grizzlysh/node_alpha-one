@@ -9,8 +9,10 @@ export default interface UserData{
     created_at       : Date | null,
     updated_at       : Date | null,
     deleted_at       : Date | null,
-    created_by       : number | null,
-    updated_by       : number | null,
-    deleted_by       : number | null
-    // role?             : IRole[]
-}
+    createdby        : { name: string, } | null,
+    updatedby        : { name: string, } | null,
+    deletedby        : { name: string, } | null,
+    role             : {
+      name: string
+    },
+  }
