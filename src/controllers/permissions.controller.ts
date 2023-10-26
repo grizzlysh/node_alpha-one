@@ -1,31 +1,30 @@
+import moment from 'moment';
 import Joi, { not } from 'joi';
 import jwt from 'jsonwebtoken';
 import bcryptjs from 'bcryptjs';
-import { Request, Response } from "express";
+import { Response } from "express";
 import { PrismaClient, Prisma } from '@prisma/client';
-import moment from 'moment';
 
 import { getPagination } from '../utils/pagination.util';
-import InvalidInputException from '../exceptions/701_invalidInput.exception';
-import UserAlreadyExistException from '../exceptions/704_userAlreadyExist.exception';
-import BasicErrorException from '../exceptions/700_basicError.exception';
-import RequestCreateUser from '../interfaces/user/requestCreateUser.interface';
 import SuccessException from '../exceptions/200_success.exception';
-import RequestGetUser from '../interfaces/user/requestGetUser.interface';
-import ResponseGetUser from '../interfaces/user/responseGetUser.interface';
-import UserNotFoundException from '../exceptions/705_userNotFound.exception';
-import RoleNotFoundException from '../exceptions/706_roleNotFound.exception';
-import RequestGetUserByID from '../interfaces/user/requestGetUserByID.interface';
-import ResponseGetUserByID from '../interfaces/user/responseGetUserByID.interface';
-import RequestEditUser from '../interfaces/user/requestEditUser.interface';
-import RequestDeleteUser from '../interfaces/user/requestDeleteUser.interface';
-import PermissionAlreadyExistException from '../exceptions/707_permissionAlreadyExist.exception';
+import BasicErrorException from '../exceptions/700_basicError.exception';
+import InvalidInputException from '../exceptions/701_invalidInput.exception';
+import PermissionNotFoundException from '../exceptions/709_permissionNotFound.exception ';
+import PermissionAlreadyExistException from '../exceptions/708_permissionAlreadyExist.exception';
+
+import RequestGetPermission from '../interfaces/permission/requestGetPermission.interface';
+import ResponseGetPermission from '../interfaces/permission/responseGetPermission.interface';
+import RequestEditPermission from '../interfaces/permission/requestEditPermission.interface';
+import RequestDeletePermission from '../interfaces/permission/requestDeletePermission.interface';
+import RequestCreatePermission from '../interfaces/permission/requestCreatePermission.interface';
+import RequestGetPermissionByID from '../interfaces/permission/requestGetPermissionByID.interface';
+import ResponseGetPermissionByID from '../interfaces/permission/responseGetPermissionByID.interface';
 
 const prisma = new PrismaClient({
   log: ['query'],
 });
 
-export async function createPermission(req: Request, res: Response): Promise<Response> {
+export async function createPermission(req: RequestCreatePermission, res: Response): Promise<Response> {
   
   try {
     const schema = Joi.object({
@@ -35,7 +34,7 @@ export async function createPermission(req: Request, res: Response): Promise<Res
         'string.min': `Display Name should have a minimum length of 4`,
         'any.required': `Display Name is a required field`
       }),
-      description     : Joi.string().max(100).required().messages({
+      description     : Joi.string().max(100).messages({
         // 'string.base': `"a" should be a type of 'text'`,
         'string.empty': `Sex cannot be an empty field`,
         // 'string.min': `Sex should have a minimum length of 6`,
@@ -55,12 +54,13 @@ export async function createPermission(req: Request, res: Response): Promise<Res
     const display_name     = inputData.display_name.trim();
     const description      = inputData.description.trim();
     const current_user_uid = inputData.current_user_uid.trim();
+    let   nameFormat       = display_name.replace(/\s+/g, '-');
 
     const checkPermission = await prisma.permissions.findFirst({
       where: {
         AND: [
           {display_name: display_name,},
-          {deleted_at: undefined,},
+          {deleted_at: null,},
         ]
       },
     })
@@ -74,12 +74,10 @@ export async function createPermission(req: Request, res: Response): Promise<Res
       where: {
         AND: [
           {uid: current_user_uid,},
-          {deleted_at: undefined,},
+          {deleted_at: null,},
         ]
       },
     })
-
-    let nameFormat = display_name.replace(/\s+/g, '-');
 
     try {
       let permission = await prisma.permissions.create({
@@ -107,19 +105,7 @@ export async function createPermission(req: Request, res: Response): Promise<Res
       return res.send(responseData)
 
     } catch (err: any) {
-      let message: string = "";
-      if (err instanceof Prisma.PrismaClientKnownRequestError){
-        if (err.code === 'P2002') {
-          console.log("There is a unique constraint violation, a new user cannot be created with this email")
-          message = "There is a unique constraint violation, a new user cannot be created with this email"
-        }
-        else{
-          // throw e;
-          message = err.message;
-        }
-      }
-      // let errorMessage = message == null ? e.message : message;
-      let exception= new BasicErrorException(message);
+      let exception= new BasicErrorException(err.message);
       return res.send(exception.getResponse)
     }
 
@@ -130,16 +116,11 @@ export async function createPermission(req: Request, res: Response): Promise<Res
 
 }
 
-export async function getPermission(req: Request, res: Response): Promise<Response> {
+export async function getPermission(req: RequestGetPermission, res: Response): Promise<Response> {
   try {
     const { page, size, cond } = req.query;
     const condition            = cond ? cond : undefined;
     const { limit, offset }    = getPagination(page, size);
-
-    console.log(cond)
-    console.log(condition)
-    console.log(condition)
-    console.log(condition ? { name: {contains: condition?.toString()} } : {})
 
     const permissionList = await prisma.permissions.findMany({
       skip: offset,
@@ -147,7 +128,10 @@ export async function getPermission(req: Request, res: Response): Promise<Respon
       where: {
         AND:[
           {deleted_at: null,},
-          {...( condition ? { name: {contains: condition?.toString()} } : {} )}
+          {name: {
+            contains: condition
+          }}
+          // {...( condition ? { name: {contains: condition?.toString()} } : {} )}
         ]
       },
       orderBy: {
@@ -179,11 +163,11 @@ export async function getPermission(req: Request, res: Response): Promise<Respon
       }
     });
     
-    const getPermissionData = {
+    const getPermissionData: ResponseGetPermission = {
       data: permissionList
     }
     
-    const responseData = new SuccessException("User Data received", getPermissionData)
+    const responseData = new SuccessException("Permission Data received", getPermissionData)
 
     return res.send(responseData)
 
@@ -193,36 +177,27 @@ export async function getPermission(req: Request, res: Response): Promise<Respon
   }
 }
 
-export async function getUserById(req: RequestGetUserByID, res: Response): Promise<Response> {
+export async function getPermissionById(req: RequestGetPermissionByID, res: Response): Promise<Response> {
   try {
-    
-    // let user: Partial<User> | any = 'ok';
-    // await User.findOne({ email: req.body.email });
-    const { username } = req.params;
 
-    const user = await prisma.users.findFirst({
+    const { permission_uid }   = req.params;
+
+    const permission = await prisma.permissions.findFirst({
       where: {
         AND: [
-          {username: username,},
-          {deleted_at: undefined,},
+          {uid: permission_uid,},
+          {deleted_at: null,},
         ]
       },
       select: {
-        uid              : true,
-        username         : true,
-        name             : true,
-        sex              : true,
-        email            : true,
-        email_verified_at: true,
-        role: {
-          select: {
-            name: true,
-          }
-        },
-        created_at       : true,
-        updated_at       : true,
-        deleted_at       : true,
-        createdby        : {
+        uid         : true,
+        name        : true,
+        display_name: true,
+        description : true,
+        created_at  : true,
+        updated_at  : true,
+        deleted_at  : true,
+        createdby   : {
           select: {
             name: true
           }
@@ -239,17 +214,18 @@ export async function getUserById(req: RequestGetUserByID, res: Response): Promi
         },
       }
     })
+    console.log(permission);
 
-    if (!user) {
-      const exception = new UserNotFoundException();
+    if (!permission) {
+      const exception = new PermissionNotFoundException();
       return res.send(exception.getResponse);
     }
 
-    const getUserData: ResponseGetUserByID = {
-      data: user
+    const getPermissionData: ResponseGetPermissionByID = {
+      data: permission
     }
     
-    const responseData = new SuccessException("User Data received", getUserData)
+    const responseData = new SuccessException("Permission Data received", getPermissionData)
 
     return res.send(responseData)
 
@@ -259,50 +235,24 @@ export async function getUserById(req: RequestGetUserByID, res: Response): Promi
   }
 }
 
-export async function editUser(req: RequestEditUser, res: Response): Promise<Response> {
+export async function editPermission(req: RequestEditPermission, res: Response): Promise<Response> {
   try {
 
-    const { username } = req.params;
-    const inputData    = req.body;
-    const editUser     = {
-      username        : inputData.username.trim(),
-      name            : inputData.name.trim(),
-      sex             : inputData.sex.trim(),
-      email           : inputData.email.trim(),
-      password        : inputData.password.trim(),
-      current_user_uid: inputData.current_user_uid.trim(),
-      role_uid        : inputData.role_uid.trim(),
-    }
-    let   email_updated    = false;
+    const { permission_uid } = req.params;
+    const inputData          = req.body;
 
     const schema = Joi.object({
-      username: Joi.string().min(6).max(30).messages({
-        'string.empty': `Username cannot be an empty field`,
-        'string.min': `Username should have a minimum length of 6`,
-        'any.required': `Username is a required field`
+      display_name    : Joi.string().min(4).max(30).required().messages({
+        // 'string.base': `"a" should be a type of 'text'`,
+        'string.empty': `Display Name cannot be an empty field`,
+        'string.min': `Display Name should have a minimum length of 4`,
+        'any.required': `Display Name is a required field`
       }),
-      name    : Joi.string().min(3).max(30).required().messages({
-        'string.empty': `Name cannot be an empty field`,
-        'string.min': `Name should have a minimum length of 6`,
-        'any.required': `Name is a required field`
-      }),
-      sex     : Joi.string().min(1).max(1).required().messages({
-        'string.empty': `Sex cannot be an empty field`,
-        'any.required': `Sex is a required field`
-      }),
-      email   : Joi.string().min(3).max(200).required().email().messages({
-        'string.empty': `Email cannot be an empty field`,
-        'string.email': `Email is not valid format`,
-        'any.required': `Email is a required field`
-      }),
-      password: Joi.string().min(6).max(200).required().messages({
-        'string.empty': `Password cannot be an empty field`,
-        'string.min': `Password should have a minimum length of 6`,
-        'any.required': `Password is a required field`
-      }),
-      role_uid: Joi.string().required().messages({
-        'string.empty': `Role cannot be an empty field`,
-        'any.required': `Role is a required field`
+      description     : Joi.string().max(100).messages({
+        // 'string.base': `"a" should be a type of 'text'`,
+        'string.empty': `Description cannot be an empty field`,
+        // 'string.min': `Description should have a minimum length of 6`,
+        'any.required': `Description is a required field`
       }),
       current_user_uid: Joi.string().min(36).max(36),
     });
@@ -314,132 +264,78 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
       return res.send(exception.getResponse);
     }
     
-    const checkUser = await prisma.users.findFirst({
+    const editPermission     = {
+      display_name    : inputData.display_name.trim(),
+      description     : inputData.description.trim(),
+      current_user_uid: inputData.current_user_uid.trim(),
+    }
+    let nameFormat = editPermission.display_name.replace(/\s+/g, '-');
+    
+    const checkPermission = await prisma.permissions.findFirst({
       where: {
         AND: [
-          {username: username,},
-          {deleted_at: undefined,},
+          {uid: permission_uid},
+          {deleted_at: null,},
         ]
       },
       select: {
-        id               : true,
-        uid              : true,
-        username         : true,
-        name             : true,
-        sex              : true,
-        email            : true,
-        password         : true,
-        email_verified_at: true,
-        role : {
-          select : {
-            uid : true
-          }
-        }
+        uid         : true,
+        name        : true,
+        display_name: true,
+        description : true,
       }
     })
 
-    if(checkUser?.username != editUser.username) {
-      const checkUsername = await prisma.users.findFirst({
+    if(checkPermission?.display_name != editPermission.display_name) {
+      const checkDisplayName = await prisma.permissions.findFirst({
         where: {
           AND: [
-            {username: username,},
-            {deleted_at: undefined,},
+            {display_name: editPermission.display_name,},
+            {deleted_at: null,},
           ]
         },
       })
 
-      if (checkUsername) {
-        const exception = new UserAlreadyExistException("Username Already Exist");
+      if (checkDisplayName) {
+        const exception = new PermissionAlreadyExistException("Display Name Already Exist");
         return res.send(exception.getResponse);
       }
     }
 
-    if(checkUser?.email != editUser.email) {
-      const checkEmail = await prisma.users.findFirst({
-        where: {
-          AND: [
-            {email: editUser.email,},
-            {deleted_at: undefined,},
-          ]
-        },
-      })
-
-      if (checkEmail) {
-        const exception = new UserAlreadyExistException("Email Already Exist");
-        return res.send(exception.getResponse);
-      }
-
-      email_updated = true;
-    }
-    
-    const roleUser =  await prisma.roles.findFirst({
-      where: {
-        AND: [
-          {uid: editUser.role_uid,},
-          {deleted_at: undefined,},
-        ]
-      },
-    })
-
-    if (!roleUser) {
-      const exception = new RoleNotFoundException();
-      return res.send(exception.getResponse)
-    }
-    
     const currentUser = await prisma.users.findFirst({
       where: {
         AND: [
-          {uid: editUser.current_user_uid,},
-          {deleted_at: undefined,},
+          {uid: editPermission.current_user_uid,},
+          {deleted_at: null,},
         ]
       },
     })
 
-    const salt            = await bcryptjs.genSalt(10);
-    const encryptPassword = await bcryptjs.hash(editUser.password, salt);
-
     try {
-      const updateUser = await prisma.users.update({
+      const updatePermission = await prisma.permissions.update({
         where: {
-          id: checkUser?.id
+          uid: permission_uid
         },
         data: {
-          username         : editUser.username,
-          name             : editUser.name,
-          sex              : editUser.sex,
-          email            : editUser.email,
-          password         : encryptPassword,
-          email_verified_at: email_updated ? null : checkUser?.email_verified_at,
+          name             : nameFormat,
+          display_name     : editPermission.display_name,
+          description      : editPermission.description,
           updated_at       : moment().format().toString(),
           updatedby        : {
             connect : {
               id: currentUser?.id
             }
           },
-          ...( (checkUser?.role.uid != editUser.role_uid) ? {
-            role: {
-              connect: {
-                id: roleUser.id
-              }
-            }
-          } : {} )
         },
         select: {
-          uid              : true,
-          username         : true,
-          name             : true,
-          sex              : true,
-          email            : true,
-          email_verified_at: true,
-          role: {
-            select: {
-              name: true,
-            }
-          },
-          created_at       : true,
-          updated_at       : true,
-          deleted_at       : true,
-          createdby        : {
+          uid         : true,
+          name        : true,
+          display_name: true,
+          description : true,
+          created_at  : true,
+          updated_at  : true,
+          deleted_at  : true,
+          createdby   : {
             select: {
               name: true
             }
@@ -457,38 +353,14 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
         }
       });
 
-      const responseData = new SuccessException("User edited successfully",updateUser)
+      const responseData = new SuccessException("Permission edited successfully", updatePermission)
 
       return res.send(responseData)
 
     } catch (err: any) {
-      let message: string = "";
-      if (err instanceof Prisma.PrismaClientKnownRequestError){
-        if (err.code === 'P2002') {
-          console.log("There is a unique constraint violation, a new user cannot be created with this email")
-          message = "There is a unique constraint violation, a new user cannot be created with this email"
-        }
-        else{
-          // throw e;
-          message = err.message;
-        }
-      }
-      // let errorMessage = message == null ? e.message : message;
-      let exception= new BasicErrorException(message);
+      let exception= new BasicErrorException(err.message);
       return res.send(exception.getResponse)
     }
-
-    // const roleUpdate = await prisma.role_user.update({
-    //   where: {
-    //     user_id_role_id: {
-    //       user_id : checkUser?.id || 1,
-    //       role_id: checkUser?.role_user[0].roles.id || 1
-    //     }
-    //   },
-    //   data: {
-    //     role_id: roleUser.id
-    //   }
-    // })
 
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
@@ -496,31 +368,41 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
   }
 }
 
-export async function deleteUser(req: RequestDeleteUser, res: Response): Promise<Response> {
+export async function deletePermission(req: RequestDeletePermission, res: Response): Promise<Response> {
   try {
     
-    const { username }     = req.params;
-    const inputData        = req.body;
-    const current_user_uid = inputData.current_user_uid.trim()
+    const { permission_uid } = req.params;
+    const inputData          = req.body;
+    const current_user_uid   = inputData.current_user_uid.trim()
+    
+    const checkPermission = await prisma.permissions.findFirst({
+      where: {
+        AND: [
+          {uid: permission_uid},
+          {deleted_at: null,},
+        ]
+      }
+    })
 
-    // const user = await prisma.users.delete({
-    //   where: {
-    //     uid: uid?.toString()
-    //   },
-    // })
+    if (!checkPermission) {
+      const exception = new PermissionNotFoundException();
+      return res.send(exception.getResponse);
+    }
+
+    
     const currentUser = await prisma.users.findFirst({
       where: {
         AND: [
           {uid: current_user_uid,},
-          {deleted_at: undefined,},
+          {deleted_at: null,},
         ]
       },
     })
 
     try {
-      const user = await prisma.users.update({
+      const permission = await prisma.permissions.update({
         where: {
-          username: username
+          uid: permission_uid
         },
         data: {
           updated_at: moment().format().toString(),
@@ -538,42 +420,14 @@ export async function deleteUser(req: RequestDeleteUser, res: Response): Promise
         }
       });
       
-      const responseData = new SuccessException("User deleted successfully")
+      const responseData = new SuccessException("Permission deleted successfully")
 
       return res.send(responseData)
 
     } catch (err: any) {
-      let message: string = "";
-      if (err instanceof Prisma.PrismaClientKnownRequestError){
-        if (err.code === 'P2002') {
-          console.log("There is a unique constraint violation, a new user cannot be created with this email")
-          message = "There is a unique constraint violation, a new user cannot be created with this email"
-        }
-        else{
-          // throw e;
-          message = err.message;
-        }
-      }
-
-      let exception= new BasicErrorException(message);
+      let exception= new BasicErrorException(err.message);
       return res.send(exception.getResponse)
     }
-    // const verifyUser = await prisma.roles.findFirst({
-    //   where: {
-    //     id : currentUser?.role_id
-    //   },
-    //   select: {
-    //     users :{
-    //       select: {
-    //         username: true,
-    //       },
-    //       where: {
-    //         deleted_at: null
-    //       }
-    //     }
-    //   }
-    // });
-
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
     return res.send(exception.getResponse)

@@ -2,7 +2,7 @@ import { Request } from "express";
 
 interface RequestEditUser extends Request {
   params: {
-    username: string,
+    user_uid: string,
   },
   body  : {
     username        : string,

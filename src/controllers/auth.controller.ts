@@ -56,7 +56,7 @@ export async function loginHandler(req: RequestLogin, res: Response): Promise<Re
       where: {
         AND: [
           {username: username,},
-          {deleted_at: undefined},
+          {deleted_at: null},
         ]
       },
       select: {
@@ -238,7 +238,7 @@ export async function registerHandler(req: RequestRegister, res: Response): Prom
       where: {
         AND: [
           {username: username,},
-          {deleted_at: undefined},
+          {deleted_at: null},
         ]
       },
     })

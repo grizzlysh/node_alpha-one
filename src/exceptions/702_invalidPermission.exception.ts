@@ -13,7 +13,7 @@ class InvalidPermissionException implements HttpException {
   get getResponse() {
     let responseData: ResponseService = {
       status_schema: {
-        status_code: this.status,
+        status_code   : this.status,
         status_message: this.message,
       },
       output_schema: {}

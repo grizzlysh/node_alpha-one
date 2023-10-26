@@ -2,7 +2,7 @@ import { Request } from "express";
 
 interface RequestGetUserByID extends Request {
   params: {
-    username: string,
+    user_uid: string,
   },
 }
 

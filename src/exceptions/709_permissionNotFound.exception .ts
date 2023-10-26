@@ -1,13 +1,13 @@
 import HttpException from "../interfaces/httpException.interface"
 import ResponseService from "../interfaces/responseService.interface";
 
-class BasicErrorException implements HttpException {
+class PermissionNotFoundException implements HttpException {
   status : number;
   message: string;
 
   constructor(inputMessage?: string) {
-    this.status  = 700;
-    this.message = inputMessage ? inputMessage : "Something went wrong, please try again";
+    this.status  = 709;
+    this.message = inputMessage ? inputMessage : "Permission Not Found";
   }
 
   get getResponse() {
@@ -23,5 +23,5 @@ class BasicErrorException implements HttpException {
   }
 }
 
-export default BasicErrorException;
+export default PermissionNotFoundException;
 

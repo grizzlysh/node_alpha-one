@@ -1,24 +1,25 @@
-import Joi, { not } from 'joi';
+import moment from 'moment';
 import jwt from 'jsonwebtoken';
+import Joi, { not } from 'joi';
 import bcryptjs from 'bcryptjs';
 import { Request, Response } from "express";
 import { PrismaClient, Prisma } from '@prisma/client';
-import moment from 'moment';
 
 import { getPagination } from '../utils/pagination.util';
-import InvalidInputException from '../exceptions/701_invalidInput.exception';
-import UserAlreadyExistException from '../exceptions/704_userAlreadyExist.exception';
-import BasicErrorException from '../exceptions/700_basicError.exception';
-import RequestCreateUser from '../interfaces/user/requestCreateUser.interface';
 import SuccessException from '../exceptions/200_success.exception';
-import RequestGetUser from '../interfaces/user/requestGetUser.interface';
-import ResponseGetUser from '../interfaces/user/responseGetUser.interface';
+import BasicErrorException from '../exceptions/700_basicError.exception';
+import InvalidInputException from '../exceptions/701_invalidInput.exception';
 import UserNotFoundException from '../exceptions/705_userNotFound.exception';
-import RoleNotFoundException from '../exceptions/706_roleNotFound.exception';
+import RoleNotFoundException from '../exceptions/707_roleNotFound.exception';
+import UserAlreadyExistException from '../exceptions/704_userAlreadyExist.exception';
+
+import RequestGetUser from '../interfaces/user/requestGetUser.interface';
+import RequestEditUser from '../interfaces/user/requestEditUser.interface';   
+import ResponseGetUser from '../interfaces/user/responseGetUser.interface';
+import RequestCreateUser from '../interfaces/user/requestCreateUser.interface';
+import RequestDeleteUser from '../interfaces/user/requestDeleteUser.interface';
 import RequestGetUserByID from '../interfaces/user/requestGetUserByID.interface';
 import ResponseGetUserByID from '../interfaces/user/responseGetUserByID.interface';
-import RequestEditUser from '../interfaces/user/requestEditUser.interface';
-import RequestDeleteUser from '../interfaces/user/requestDeleteUser.interface';
 
 const prisma = new PrismaClient({
   log: ['query'],
@@ -88,7 +89,7 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
       where: {
         AND: [
           {username: username,},
-          {deleted_at: undefined,},
+          {deleted_at: null,},
         ]
       },
     })
@@ -102,7 +103,7 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
       where: {
         AND: [
           {email: email,},
-          {deleted_at: undefined,},
+          {deleted_at: null,},
         ]
       },
     })
@@ -116,7 +117,7 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
       where: {
         AND: [
           {uid: role_uid,},
-          {deleted_at: undefined,},
+          {deleted_at: null,},
         ]
       },
     })
@@ -130,7 +131,7 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
       where: {
         AND: [
           {uid: current_user_uid,},
-          {deleted_at: undefined,},
+          {deleted_at: null,},
         ]
       },
     })
@@ -205,12 +206,19 @@ export async function getUser(req: RequestGetUser, res: Response): Promise<Respo
       take: limit,
       where: {
         AND:[
-          {deleted_at: undefined,},
-          {...( condition ? {OR: [
-            {email     : {contains: condition},},
-            {username  : {contains: condition},},
-            {name      : {contains: condition},},
-          ]} : {} )}
+          {deleted_at: null,},
+          {
+            OR: [
+              {email: {contains: condition}},
+              {username: {contains: condition}},
+              {name: {contains: condition}},
+            ]
+          }
+          // {...( condition ? {OR: [
+          //   {email     : {contains: condition},},
+          //   {username  : {contains: condition},},
+          //   {name      : {contains: condition},},
+          // ]} : {} )}
         ]
       },
       orderBy: {
@@ -269,13 +277,13 @@ export async function getUserById(req: RequestGetUserByID, res: Response): Promi
     
     // let user: Partial<User> | any = 'ok';
     // await User.findOne({ email: req.body.email });
-    const { username } = req.params;
+    const { user_uid } = req.params;
 
     const user = await prisma.users.findFirst({
       where: {
         AND: [
-          {username: username,},
-          {deleted_at: undefined,},
+          {uid: user_uid,},
+          {deleted_at: null,},
         ]
       },
       select: {
@@ -332,19 +340,8 @@ export async function getUserById(req: RequestGetUserByID, res: Response): Promi
 
 export async function editUser(req: RequestEditUser, res: Response): Promise<Response> {
   try {
-
-    const { username } = req.params;
+    const { user_uid } = req.params;
     const inputData    = req.body;
-    const editUser     = {
-      username        : inputData.username.trim(),
-      name            : inputData.name.trim(),
-      sex             : inputData.sex.trim(),
-      email           : inputData.email.trim(),
-      password        : inputData.password.trim(),
-      current_user_uid: inputData.current_user_uid.trim(),
-      role_uid        : inputData.role_uid.trim(),
-    }
-    let isEmailUpdated = false;
 
     const schema = Joi.object({
       username: Joi.string().min(6).max(30).messages({
@@ -384,12 +381,23 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
       const exception = new InvalidInputException(error.message);
       return res.send(exception.getResponse);
     }
+
+    const editUser     = {
+      username        : inputData.username.trim(),
+      name            : inputData.name.trim(),
+      sex             : inputData.sex.trim(),
+      email           : inputData.email.trim(),
+      password        : inputData.password.trim(),
+      current_user_uid: inputData.current_user_uid.trim(),
+      role_uid        : inputData.role_uid.trim(),
+    }
+    let isEmailUpdated = false;
     
     const checkUser = await prisma.users.findFirst({
       where: {
         AND: [
-          {username: username,},
-          {deleted_at: undefined,},
+          {uid: user_uid,},
+          {deleted_at: null,},
         ]
       },
       select: {
@@ -413,8 +421,8 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
       const checkUsername = await prisma.users.findFirst({
         where: {
           AND: [
-            {username: username,},
-            {deleted_at: undefined,},
+            {username: editUser.username,},
+            {deleted_at: null,},
           ]
         },
       })
@@ -430,7 +438,7 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
         where: {
           AND: [
             {email: editUser.email,},
-            {deleted_at: undefined,},
+            {deleted_at: null,},
           ]
         },
       })
@@ -447,7 +455,7 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
       where: {
         AND: [
           {uid: editUser.role_uid,},
-          {deleted_at: undefined,},
+          {deleted_at: null,},
         ]
       },
     })
@@ -461,7 +469,7 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
       where: {
         AND: [
           {uid: editUser.current_user_uid,},
-          {deleted_at: undefined,},
+          {deleted_at: null,},
         ]
       },
     })
@@ -472,7 +480,7 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
     try {
       const updateUser = await prisma.users.update({
         where: {
-          id: checkUser?.id
+          uid: user_uid
         },
         data: {
           username         : editUser.username,
@@ -528,7 +536,7 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
         }
       });
 
-      const responseData = new SuccessException("User edited successfully",updateUser)
+      const responseData = new SuccessException("User edited successfully", updateUser)
 
       return res.send(responseData)
 
@@ -570,7 +578,7 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
 export async function deleteUser(req: RequestDeleteUser, res: Response): Promise<Response> {
   try {
     
-    const { username }     = req.params;
+    const { user_uid }     = req.params;
     const inputData        = req.body;
     const current_user_uid = inputData.current_user_uid.trim()
 
@@ -579,11 +587,26 @@ export async function deleteUser(req: RequestDeleteUser, res: Response): Promise
     //     uid: uid?.toString()
     //   },
     // })
+
+    const checkUser = await prisma.users.findFirst({
+      where: {
+        AND: [
+          {uid: user_uid,},
+          {deleted_at: null,},
+        ]
+      },
+    })
+
+    if (!checkUser) {
+      const exception = new UserNotFoundException();
+      return res.send(exception.getResponse);
+    }
+
     const currentUser = await prisma.users.findFirst({
       where: {
         AND: [
           {uid: current_user_uid,},
-          {deleted_at: undefined,},
+          {deleted_at: null,},
         ]
       },
     })
@@ -591,7 +614,7 @@ export async function deleteUser(req: RequestDeleteUser, res: Response): Promise
     try {
       const user = await prisma.users.update({
         where: {
-          username: username
+          uid: user_uid
         },
         data: {
           updated_at: moment().format().toString(),
@@ -614,19 +637,7 @@ export async function deleteUser(req: RequestDeleteUser, res: Response): Promise
       return res.send(responseData)
 
     } catch (err: any) {
-      let message: string = "";
-      if (err instanceof Prisma.PrismaClientKnownRequestError){
-        if (err.code === 'P2002') {
-          console.log("There is a unique constraint violation, a new user cannot be created with this email")
-          message = "There is a unique constraint violation, a new user cannot be created with this email"
-        }
-        else{
-          // throw e;
-          message = err.message;
-        }
-      }
-
-      let exception= new BasicErrorException(message);
+      let exception= new BasicErrorException(err.message);
       return res.send(exception.getResponse)
     }
     // const verifyUser = await prisma.roles.findFirst({

@@ -1,6 +1,6 @@
 import { Request } from "express";
 
-interface RequestGetUser extends Request{
+interface RequestGetPermission extends Request{
   query: {
     page: string,
     size: string,
@@ -8,4 +8,4 @@ interface RequestGetUser extends Request{
   }
 }
 
-export default RequestGetUser;
+export default RequestGetPermission;

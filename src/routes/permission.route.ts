@@ -1,7 +1,6 @@
 import express from 'express';
-import { createUser, getUser, getUserById, editUser, deleteUser } from '../controllers/user.controller';
 import checkJwt from '../middleware/checkJwt';
-import { createPermission, getPermission } from '../controllers/permissions.controller';
+import { createPermission, deletePermission, editPermission, getPermission, getPermissionById } from '../controllers/permissions.controller';
 
 const PermissionRoutes = express.Router();
 
@@ -12,12 +11,12 @@ PermissionRoutes.post('/', checkJwt, createPermission);
 PermissionRoutes.get('/', checkJwt, getPermission);
 
 // get permission by id
-PermissionRoutes.get('/:username', checkJwt, getUserById);
+PermissionRoutes.get('/:permission_uid', checkJwt, getPermissionById);
 
 // edit permission by id
-PermissionRoutes.put('/:username', checkJwt, editUser);
+PermissionRoutes.put('/:permission_uid', checkJwt, editPermission);
 
 // delete permission by id
-PermissionRoutes.delete('/:username', checkJwt, deleteUser);
+PermissionRoutes.delete('/:permission_uid', checkJwt, deletePermission);
 
 export default PermissionRoutes;
