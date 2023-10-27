@@ -5,13 +5,16 @@ import bcryptjs from 'bcryptjs';
 import { Request, Response } from "express";
 import { PrismaClient, Prisma } from '@prisma/client';
 
+import Menu from '../constants/menus.constant';
 import { getPagination } from '../utils/pagination.util';
+
 import SuccessException from '../exceptions/200_success.exception';
 import BasicErrorException from '../exceptions/700_basicError.exception';
 import InvalidInputException from '../exceptions/701_invalidInput.exception';
 import UserNotFoundException from '../exceptions/705_userNotFound.exception';
 import RoleNotFoundException from '../exceptions/707_roleNotFound.exception';
 import UserAlreadyExistException from '../exceptions/704_userAlreadyExist.exception';
+import InvalidPermissionException from '../exceptions/702_invalidPermission.exception';
 
 import RequestGetUser from '../interfaces/user/requestGetUser.interface';
 import RequestEditUser from '../interfaces/user/requestEditUser.interface';   
@@ -85,15 +88,63 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
     const current_user_uid = inputData.current_user_uid.trim();
     const role_uid         = inputData.role_uid.trim();
 
+    const currentUser = await prisma.users.findFirst({
+      where: {
+        AND: [
+          {uid: current_user_uid,},
+          {deleted_at: null,},
+        ],
+        role: {
+          permission_role: {
+            every: {
+              AND: {
+                write_permit: true,
+                permissions: {
+                  name: Menu.USER,
+                }
+              }
+            }
+          }
+        },
+      },
+      include: {
+        role: {
+          select:{
+            name: true,
+            permission_role: {
+              select: {
+                modify_permit: true,
+                read_permit  : true,
+                write_permit : true,
+                permissions : {
+                  select: {
+                    uid: true,
+                    name: true,
+                    // name: "permission",
+                  }
+                },
+              }
+            }
+          }
+        }
+      },
+    })
+
+    if (!currentUser) {
+      const exception = new InvalidPermissionException();
+      return res.send(exception.getResponse);
+    }
+
+
     const checkUser = await prisma.users.findFirst({
       where: {
         AND: [
           {username: username,},
-          {deleted_at: null,},
+          {deleted_at: null}
         ]
       },
     })
-
+    
     if (checkUser) {
       const exception = new UserAlreadyExistException("Username Already Exist");
       return res.send(exception.getResponse);
@@ -127,15 +178,6 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
       return res.send(exception.getResponse)
     }
     
-    const currentUser = await prisma.users.findFirst({
-      where: {
-        AND: [
-          {uid: current_user_uid,},
-          {deleted_at: null,},
-        ]
-      },
-    })
-
     const salt            = await bcryptjs.genSalt(10);
     const encryptPassword = await bcryptjs.hash(password, salt);
     

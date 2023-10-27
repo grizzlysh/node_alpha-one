@@ -388,7 +388,6 @@ export async function deletePermission(req: RequestDeletePermission, res: Respon
       const exception = new PermissionNotFoundException();
       return res.send(exception.getResponse);
     }
-
     
     const currentUser = await prisma.users.findFirst({
       where: {

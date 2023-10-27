@@ -10,7 +10,7 @@ AuthRoutes.post('/register', registerHandler);
 AuthRoutes.post('/login', loginHandler);
 
 // refresh access token
-AuthRoutes.get('/refresh', refreshTokenHandler);
+AuthRoutes.post('/refresh', refreshTokenHandler);
 
 // logout User
 // AuthRoutes.get('/logout', deserializeUser, requireUser, logoutHandler);sssss

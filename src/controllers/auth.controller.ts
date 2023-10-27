@@ -114,9 +114,9 @@ export async function loginHandler(req: RequestLogin, res: Response): Promise<Re
     });
 
     const loginData: ResponseLogin = {
-      user        : userOnline,
-      accessToken : accessToken,
-      refreshToken: refreshToken
+      user         : userOnline,
+      access_token : accessToken,
+      refresh_token: refreshToken
     }
     const responseData = new SuccessException("Login Success", loginData)
     return res.send(responseData.getResponse);
@@ -130,13 +130,14 @@ export async function loginHandler(req: RequestLogin, res: Response): Promise<Re
 export async function refreshTokenHandler(req: Request, res: Response): Promise<Response> {
 
   try {
-    
-    if (req.body.refreshToken) {
+    console.log(req.cookies)
+    console.log(req.cookies.refresh_token);
+    if (req.cookies.refresh_token) {
 
-      const refreshToken = req.body.refreshToken.trim();
+      const refreshToken = req.cookies.refresh_token.trim();
 
-      const jwtSecretKey: jwt.Secret  = process.env.TODO_APP_JWT_SECRET_KEY || 'S0M3WH3R3';
-      const jwtRefreshKey: jwt.Secret = process.env.TODO_APP_JWT_REFRESH_KEY || 'S0M3WH3R3';
+      const jwtSecretKey: jwt.Secret  = process.env.JWT_SECRET_KEY || 'S0M3WH3R3';
+      const jwtRefreshKey: jwt.Secret = process.env.JWT_REFRESH_KEY || 'S0M3WH3R3';
 
       jwt.verify(refreshToken, jwtRefreshKey, (err: VerifyErrors | null, payload: any) => {
         if (err) {
@@ -156,20 +157,17 @@ export async function refreshTokenHandler(req: Request, res: Response): Promise<
             }
           }
   
-          const accessToken = jwt.sign(userOnline, jwtSecretKey, { expiresIn: '1m' });
+          const newAccessToken = jwt.sign(userOnline, jwtSecretKey, { expiresIn: '1m' });
           
           const refreshData: ResponseLogin = {
-            user        : userOnline,
-            accessToken : accessToken,
-            refreshToken: ""
+            user         : userOnline,
+            access_token : newAccessToken,
+            refresh_token: ""
           }
-          
-          const responseData = new SuccessException("Refresh Success", refreshData)
-          return res.send(responseData.getResponse);
         }
       })
-      const exception = new BasicErrorException();
-      return res.send(exception.getResponse)
+      const responseData = new SuccessException("Refresh Success", refreshData)
+      return res.send(responseData.getResponse);
     }
     else{
       const exception = new InvalidTokenException();

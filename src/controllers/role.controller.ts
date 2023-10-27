@@ -27,6 +27,7 @@ import RequestGetRoleByID from '../interfaces/role/requestGetRoleByID.interface'
 import RoleNotFoundException from '../exceptions/707_roleNotFound.exception';
 import ResponseGetRoleByID from '../interfaces/role/responseGetRoleByID.interface';
 import RequestEditRole from '../interfaces/role/requestEditRole.interface';
+import RequestDeleteRole from '../interfaces/role/requestDeleteRole.interface';
 
 const prisma = new PrismaClient({
   log: ['query', 'info', 'warn', 'error'],
@@ -474,26 +475,40 @@ export async function editRole(req: RequestEditRole, res: Response): Promise<Res
   }
 }
 
-export async function deleteRole(req: RequestDeletePermission, res: Response): Promise<Response> {
+export async function deleteRole(req: RequestDeleteRole, res: Response): Promise<Response> {
   try {
     
-    const { permission_uid } = req.params;
-    const inputData          = req.body;
-    const current_user_uid   = inputData.current_user_uid.trim()
+    const { role_uid }     = req.params;
+    const inputData        = req.body;
+    const current_user_uid = inputData.current_user_uid.trim()
     
+    const checkRole = await prisma.roles.findFirst({
+      where: {
+        AND: [
+          {uid: role_uid},
+          {deleted_at: null,},
+        ]
+      }
+    })
+
+    if (!checkRole) {
+      const exception = new RoleNotFoundException();
+      return res.send(exception.getResponse);
+    }
+
     const currentUser = await prisma.users.findFirst({
       where: {
         AND: [
           {uid: current_user_uid,},
-          {deleted_at: undefined,},
+          {deleted_at: null,},
         ]
       },
     })
 
     try {
-      const permission = await prisma.permissions.update({
+      const role = await prisma.roles.update({
         where: {
-          uid: permission_uid
+          uid: role_uid
         },
         data: {
           updated_at: moment().format().toString(),
@@ -511,7 +526,7 @@ export async function deleteRole(req: RequestDeletePermission, res: Response): P
         }
       });
       
-      const responseData = new SuccessException("Permission deleted successfully")
+      const responseData = new SuccessException("Role deleted successfully")
 
       return res.send(responseData)
 
