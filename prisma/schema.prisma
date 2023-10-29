@@ -25,6 +25,7 @@ model permission_role {
   read_permit   Boolean     @default(false)
   write_permit  Boolean     @default(false)
   modify_permit Boolean     @default(false)
+  delete_permit Boolean     @default(false)
 
   @@id([permission_id, role_id])
 }
