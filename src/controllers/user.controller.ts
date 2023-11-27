@@ -76,7 +76,7 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
 
     if (error) {
       const exception = new InvalidInputException(error.message);
-      return res.send(exception.getResponse);
+      return res.status(400).send(exception.getResponse);
     }
 
     const inputData        = req.body;
@@ -132,7 +132,7 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
 
     if (!currentUser) {
       const exception = new InvalidPermissionException();
-      return res.send(exception.getResponse);
+      return res.status(400).send(exception.getResponse);
     }
 
 
@@ -147,7 +147,7 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
     
     if (checkUser) {
       const exception = new UserAlreadyExistException("Username Already Exist");
-      return res.send(exception.getResponse);
+      return res.status(400).send(exception.getResponse);
     }
 
     const checkEmail = await prisma.users.findFirst({
@@ -161,7 +161,7 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
 
     if (checkEmail) {
       const exception = new UserAlreadyExistException("Email Already Exist");
-      return res.send(exception.getResponse);
+      return res.status(400).send(exception.getResponse);
     }
     
     const roleUser =  await prisma.roles.findFirst({
@@ -175,7 +175,7 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
 
     if (!roleUser) {
       const exception = new RoleNotFoundException();
-      return res.send(exception.getResponse)
+      return res.status(400).send(exception.getResponse)
     }
     
     const salt            = await bcryptjs.genSalt(10);
@@ -227,12 +227,12 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
       }
       // let errorMessage = message == null ? e.message : message;
       let exception= new BasicErrorException(message);
-      return res.send(exception.getResponse)
+      return res.status(400).send(exception.getResponse)
     }
 
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
-    return res.send(exception.getResponse)
+    return res.status(400).send(exception.getResponse)
   }
 
 }
@@ -310,7 +310,7 @@ export async function getUser(req: RequestGetUser, res: Response): Promise<Respo
 
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
-    return res.send(exception.getResponse)
+    return res.status(400).send(exception.getResponse)
   }
 }
 
@@ -363,7 +363,7 @@ export async function getUserById(req: RequestGetUserByID, res: Response): Promi
 
     if (!user) {
       const exception = new UserNotFoundException();
-      return res.send(exception.getResponse);
+      return res.status(400).send(exception.getResponse);
     }
 
     const getUserData: ResponseGetUserByID = {
@@ -376,7 +376,7 @@ export async function getUserById(req: RequestGetUserByID, res: Response): Promi
 
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
-    return res.send(exception.getResponse)
+    return res.status(400).send(exception.getResponse)
   }
 }
 
@@ -421,7 +421,7 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
 
     if (error) {
       const exception = new InvalidInputException(error.message);
-      return res.send(exception.getResponse);
+      return res.status(400).send(exception.getResponse);
     }
 
     const editUser     = {
@@ -471,7 +471,7 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
 
       if (checkUsername) {
         const exception = new UserAlreadyExistException("Username Already Exist");
-        return res.send(exception.getResponse);
+        return res.status(400).send(exception.getResponse);
       }
     }
 
@@ -487,7 +487,7 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
 
       if (checkEmail) {
         const exception = new UserAlreadyExistException("Email Already Exist");
-        return res.send(exception.getResponse);
+        return res.status(400).send(exception.getResponse);
       }
 
       isEmailUpdated = true;
@@ -504,7 +504,7 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
 
     if (!roleUser) {
       const exception = new RoleNotFoundException();
-      return res.send(exception.getResponse)
+      return res.status(400).send(exception.getResponse)
     }
     
     const currentUser = await prisma.users.findFirst({
@@ -596,7 +596,7 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
       }
       // let errorMessage = message == null ? e.message : message;
       let exception= new BasicErrorException(message);
-      return res.send(exception.getResponse)
+      return res.status(400).send(exception.getResponse)
     }
 
     // const roleUpdate = await prisma.role_user.update({
@@ -613,7 +613,7 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
 
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
-    return res.send(exception.getResponse)
+    return res.status(400).send(exception.getResponse)
   }
 }
 
@@ -641,7 +641,7 @@ export async function deleteUser(req: RequestDeleteUser, res: Response): Promise
 
     if (!checkUser) {
       const exception = new UserNotFoundException();
-      return res.send(exception.getResponse);
+      return res.status(400).send(exception.getResponse);
     }
 
     const currentUser = await prisma.users.findFirst({
@@ -680,7 +680,7 @@ export async function deleteUser(req: RequestDeleteUser, res: Response): Promise
 
     } catch (err: any) {
       let exception= new BasicErrorException(err.message);
-      return res.send(exception.getResponse)
+      return res.status(400).send(exception.getResponse)
     }
     // const verifyUser = await prisma.roles.findFirst({
     //   where: {
@@ -700,6 +700,6 @@ export async function deleteUser(req: RequestDeleteUser, res: Response): Promise
 
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
-    return res.send(exception.getResponse)
+    return res.status(400).send(exception.getResponse)
   }
 }

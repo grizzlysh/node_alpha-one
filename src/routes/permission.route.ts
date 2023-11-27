@@ -1,6 +1,6 @@
 import express from 'express';
 import checkJwt from '../middleware/checkJwt';
-import { createPermission, deletePermission, editPermission, getPermission, getPermissionById } from '../controllers/permissions.controller';
+import { createPermission, deletePermission, editPermission, getPermission, getPermissionById } from '../controllers/permission.controller';
 
 const PermissionRoutes = express.Router();
 

@@ -27,13 +27,13 @@ export async function loginHandler(req: RequestLogin, res: Response): Promise<Re
   try {
     
     const schema = Joi.object({
-      username: Joi.string().min(6).max(30).required().messages({
+      username: Joi.string().required().messages({
         // 'string.base': `"a" should be a type of 'text'`,
         'string.empty': `Username cannot be an empty field`,
         // 'string.min': `Username should have a minimum length of 6`,
         'any.required': `Username is a required field`
       }),
-      password: Joi.string().min(6).max(200).required().messages({
+      password: Joi.string().required().messages({
         // 'string.base': `"a" should be a type of 'text'`,
         'string.empty': `Password cannot be an empty field`,
         // 'string.min': `Password should have a minimum length of 6`,
@@ -45,7 +45,7 @@ export async function loginHandler(req: RequestLogin, res: Response): Promise<Re
   
     if (error) {
       const exception = new InvalidInputException(error.message);
-      return res.send(exception.getResponse)
+      return res.status(400).send(exception.getResponse)
     }
     
     const inputData = req.body;
@@ -78,14 +78,16 @@ export async function loginHandler(req: RequestLogin, res: Response): Promise<Re
     
     if (!checkUser) {
       const exception = new UserNotFoundException();
-      return res.send(exception.getResponse)
+      return res.status(400).send(exception.getResponse)
     }
   
-    const validPassword = await bcryptjs.compare(password, checkUser.password);
-    
+    const salt            = await bcryptjs.genSalt(10);
+    const encryptPassword = await bcryptjs.hash(password, salt);
+    const validPassword = await bcryptjs.compare(encryptPassword, checkUser.password);
+
     if (!validPassword){
       const exception = new InvalidInputException("Wrong Password");
-      return res.send(exception.getResponse)
+      return res.status(400).send(exception.getResponse)
     }
   
     let userOnline: UserOnline = {
@@ -124,7 +126,7 @@ export async function loginHandler(req: RequestLogin, res: Response): Promise<Re
 
   } catch (e: any) {
     const exception = new BasicErrorException(e.message);
-    return res.send(exception.getResponse)
+    return res.status(400).send(exception.getResponse)
   }
 }
 
@@ -134,7 +136,7 @@ export async function refreshTokenHandler(req: Request, res: Response): Promise<
 
     if (!req.cookies.refresh_token) {
       const exception = new InvalidTokenException();
-      return res.send(exception.getResponse)
+      return res.status(400).send(exception.getResponse)
     }
     
     const refreshToken = req.cookies.refresh_token.trim();
@@ -175,7 +177,7 @@ export async function refreshTokenHandler(req: Request, res: Response): Promise<
 
   } catch (e: any) {
     const exception = new BasicErrorException(e.message);
-    return res.send(exception.getResponse)
+    return res.status(400).send(exception.getResponse)
   }
 
 }
@@ -221,7 +223,7 @@ export async function registerHandler(req: RequestRegister, res: Response): Prom
 
     if (error) {
       const exception = new InvalidInputException(error.message);
-      return res.send(exception.getResponse)
+      return res.status(400).send(exception.getResponse)
     }
 
     const inputData = req.body;
@@ -243,7 +245,7 @@ export async function registerHandler(req: RequestRegister, res: Response): Prom
 
     if (checkUser) {
       const exception = new UserAlreadyExistException();
-      return res.send(exception.getResponse)
+      return res.status(400).send(exception.getResponse)
     }
 
     const salt            = await bcryptjs.genSalt(10);
@@ -326,12 +328,12 @@ export async function registerHandler(req: RequestRegister, res: Response): Prom
       }
       // let errorMessage = message == null ? e.message : message;
       let exception= new BasicErrorException(message);
-      return res.send(exception.getResponse)
+      return res.status(400).send(exception.getResponse)
     }
 
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
-    return res.send(exception.getResponse)
+    return res.status(400).send(exception.getResponse)
   }
 
 }

@@ -62,7 +62,7 @@ export async function createRole(req: RequestCreateRole, res: Response): Promise
 
     if (error) {
       const exception = new InvalidInputException(error.message);
-      return res.send(exception.getResponse);
+      return res.status(400).send(exception.getResponse);
     }
 
     const inputData        = req.body;
@@ -84,7 +84,7 @@ export async function createRole(req: RequestCreateRole, res: Response): Promise
 
     if (checkRole) {
       const exception = new RoleAlreadyExistException("Role Name Already Exist");
-      return res.send(exception.getResponse);
+      return res.status(400).send(exception.getResponse);
     }
 
     const currentUser = await prisma.users.findFirst({
@@ -170,12 +170,12 @@ export async function createRole(req: RequestCreateRole, res: Response): Promise
 
     } catch (err: any) {
       let exception= new BasicErrorException(err.message);
-      return res.send(exception.getResponse)
+      return res.status(400).send(exception.getResponse)
     }
 
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
-    return res.send(exception.getResponse)
+    return res.status(400).send(exception.getResponse)
   }
 
 }
@@ -235,7 +235,7 @@ export async function getRole(req: RequestGetRole, res: Response): Promise<Respo
 
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
-    return res.send(exception.getResponse)
+    return res.status(400).send(exception.getResponse)
   }
 }
 
@@ -291,7 +291,7 @@ export async function getRoleById(req: RequestGetRoleByID, res: Response): Promi
 
     if (!role) {
       const exception = new RoleNotFoundException();
-      return res.send(exception.getResponse);
+      return res.status(400).send(exception.getResponse);
     }
 
     const getRoleData: ResponseGetRoleByID = {
@@ -304,7 +304,7 @@ export async function getRoleById(req: RequestGetRoleByID, res: Response): Promi
 
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
-    return res.send(exception.getResponse)
+    return res.status(400).send(exception.getResponse)
   }
 }
 
@@ -340,7 +340,7 @@ export async function editRole(req: RequestEditRole, res: Response): Promise<Res
 
     if (error) {
       const exception = new InvalidInputException(error.message);
-      return res.send(exception.getResponse);
+      return res.status(400).send(exception.getResponse);
     }
     
     const editRole     = {
@@ -380,7 +380,7 @@ export async function editRole(req: RequestEditRole, res: Response): Promise<Res
 
       if (checkDisplayName) {
         const exception = new RoleAlreadyExistException("Display Name Already Exist");
-        return res.send(exception.getResponse);
+        return res.status(400).send(exception.getResponse);
       }
     }
 
@@ -466,12 +466,12 @@ export async function editRole(req: RequestEditRole, res: Response): Promise<Res
       console.log("error")
       console.log(err);
       let exception= new BasicErrorException(err.message);
-      return res.send(exception.getResponse)
+      return res.status(400).send(exception.getResponse)
     }
 
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
-    return res.send(exception.getResponse)
+    return res.status(400).send(exception.getResponse)
   }
 }
 
@@ -493,7 +493,7 @@ export async function deleteRole(req: RequestDeleteRole, res: Response): Promise
 
     if (!checkRole) {
       const exception = new RoleNotFoundException();
-      return res.send(exception.getResponse);
+      return res.status(400).send(exception.getResponse);
     }
 
     const currentUser = await prisma.users.findFirst({
@@ -532,10 +532,10 @@ export async function deleteRole(req: RequestDeleteRole, res: Response): Promise
 
     } catch (err: any) {
       let exception= new BasicErrorException(err.message);
-      return res.send(exception.getResponse)
+      return res.status(400).send(exception.getResponse)
     }
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
-    return res.send(exception.getResponse)
+    return res.status(400).send(exception.getResponse)
   }
 }
