@@ -134,7 +134,7 @@ export async function refreshTokenHandler(req: Request, res: Response): Promise<
 
     if (!req.cookies.refresh_token) {
       const exception = new InvalidTokenException();
-      return res.status(400).send(exception.getResponse)
+      return res.status(401).send(exception.getResponse)
     }
     
     const refreshToken = req.cookies.refresh_token.trim();
@@ -170,7 +170,7 @@ export async function refreshTokenHandler(req: Request, res: Response): Promise<
     }
     catch(err: any) {
       const exception = new InvalidTokenException(err.message)
-      return res.status(402).send(exception.getResponse)
+      return res.status(401).send(exception.getResponse)
     }
 
   } catch (e: any) {

@@ -5,7 +5,7 @@ import bcryptjs from 'bcryptjs';
 import { Response } from "express";
 import { PrismaClient, Prisma } from '@prisma/client';
 
-import { getPagination } from '../utils/pagination.util';
+import { getPagination, getPagingData } from '../utils/pagination.util';
 import SuccessException from '../exceptions/200_success.exception';
 import BasicErrorException from '../exceptions/700_basicError.exception';
 import InvalidInputException from '../exceptions/701_invalidInput.exception';
@@ -102,7 +102,7 @@ export async function createPermission(req: RequestCreatePermission, res: Respon
       
       const responseData = new SuccessException("Permission created successfully")
 
-      return res.send(responseData)
+      return res.send(responseData.getResponse)
 
     } catch (err: any) {
       let exception= new BasicErrorException(err.message);
@@ -118,11 +118,11 @@ export async function createPermission(req: RequestCreatePermission, res: Respon
 
 export async function getPermission(req: RequestGetPermission, res: Response): Promise<Response> {
   try {
-    const { page, size, cond } = req.query;
-    const condition            = cond ? cond : undefined;
-    const { limit, offset }    = getPagination(page, size);
+    const { page, size, cond, sort, field } = req.query;
+    const condition                         = cond ? cond : undefined;
+    const { limit, offset }                 = getPagination(page, size);
 
-    const permissionList = await prisma.permissions.findMany({
+    const query: Prisma.permissionsFindManyArgs = {
       skip: offset,
       take: limit,
       where: {
@@ -135,7 +135,7 @@ export async function getPermission(req: RequestGetPermission, res: Response): P
         ]
       },
       orderBy: {
-        name: 'asc',
+        [field]: sort,
       },
       select: {
         uid         : true,
@@ -161,15 +161,24 @@ export async function getPermission(req: RequestGetPermission, res: Response): P
           }
         },
       }
-    });
+    }
+
+    const [permissionList, permissionCount] = await prisma.$transaction([
+      prisma.permissions.findMany(query),
+      prisma.permissions.count({ where: query.where}),
+    ])
     
+    const permissionData                           = getPagingData(permissionList, permissionCount, page, limit);
     const getPermissionData: ResponseGetPermission = {
-      data: permissionList
+      data        : permissionData.data,
+      total_data  : permissionData.totalData,
+      current_page: permissionData.currentPage,
+      total_pages : permissionData.totalPages
     }
     
     const responseData = new SuccessException("Permission Data received", getPermissionData)
 
-    return res.send(responseData)
+    return res.send(responseData.getResponse)
 
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
@@ -227,7 +236,7 @@ export async function getPermissionById(req: RequestGetPermissionByID, res: Resp
     
     const responseData = new SuccessException("Permission Data received", getPermissionData)
 
-    return res.send(responseData)
+    return res.send(responseData.getResponse)
 
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
@@ -355,7 +364,7 @@ export async function editPermission(req: RequestEditPermission, res: Response):
 
       const responseData = new SuccessException("Permission edited successfully", updatePermission)
 
-      return res.send(responseData)
+      return res.send(responseData.getResponse)
 
     } catch (err: any) {
       let exception= new BasicErrorException(err.message);
@@ -421,7 +430,7 @@ export async function deletePermission(req: RequestDeletePermission, res: Respon
       
       const responseData = new SuccessException("Permission deleted successfully")
 
-      return res.send(responseData)
+      return res.send(responseData.getResponse)
 
     } catch (err: any) {
       let exception= new BasicErrorException(err.message);

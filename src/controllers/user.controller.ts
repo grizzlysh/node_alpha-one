@@ -6,7 +6,7 @@ import { Request, Response } from "express";
 import { PrismaClient, Prisma } from '@prisma/client';
 
 import Menu from '../constants/menus.constant';
-import { getPagination } from '../utils/pagination.util';
+import { getPagination, getPagingData } from '../utils/pagination.util';
 
 import SuccessException from '../exceptions/200_success.exception';
 import BasicErrorException from '../exceptions/700_basicError.exception';
@@ -211,7 +211,7 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
       
       const responseData = new SuccessException("User created successfully")
 
-      return res.send(responseData)
+      return res.send(responseData.getResponse)
 
     } catch (err: any) {
       let message: string = "";
@@ -239,11 +239,11 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
 
 export async function getUser(req: RequestGetUser, res: Response): Promise<Response> {
   try {
-    const { page, size, cond } = req.query;
-    const condition            = cond ? cond : undefined;
-    const { limit, offset }    = getPagination(page, size);
+    const { page, size, cond, sort, field } = req.query;
+    const condition                         = cond ? cond : undefined;
+    const { limit, offset }                 = getPagination(page, size);
 
-    const userList = await prisma.users.findMany({
+    const query: Prisma.usersFindManyArgs = {
       skip: offset,
       take: limit,
       where: {
@@ -264,7 +264,7 @@ export async function getUser(req: RequestGetUser, res: Response): Promise<Respo
         ]
       },
       orderBy: {
-        name: 'asc',
+        [field]: sort,
       },
       select: {
         uid              : true,
@@ -298,15 +298,24 @@ export async function getUser(req: RequestGetUser, res: Response): Promise<Respo
           }
         },
       }
-    });
+    }
+
+    const [userList, userCount] = await prisma.$transaction([
+      prisma.users.findMany(query),
+      prisma.users.count({ where: query.where}),
+    ])
     
+    const userData                     = getPagingData(userList, userCount, page, limit);
     const getUserData: ResponseGetUser = {
-      data: userList
+      data        : userData.data,
+      total_data  : userData.totalData,
+      current_page: userData.currentPage,
+      total_pages : userData.totalPages
     }
     
     const responseData = new SuccessException("User Data received", getUserData)
 
-    return res.send(responseData)
+    return res.send(responseData.getResponse)
 
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
@@ -372,7 +381,7 @@ export async function getUserById(req: RequestGetUserByID, res: Response): Promi
     
     const responseData = new SuccessException("User Data received", getUserData)
 
-    return res.send(responseData)
+    return res.send(responseData.getResponse)
 
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
@@ -580,7 +589,7 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
 
       const responseData = new SuccessException("User edited successfully", updateUser)
 
-      return res.send(responseData)
+      return res.send(responseData.getResponse)
 
     } catch (err: any) {
       let message: string = "";
@@ -676,7 +685,7 @@ export async function deleteUser(req: RequestDeleteUser, res: Response): Promise
       
       const responseData = new SuccessException("User deleted successfully")
 
-      return res.send(responseData)
+      return res.send(responseData.getResponse)
 
     } catch (err: any) {
       let exception= new BasicErrorException(err.message);

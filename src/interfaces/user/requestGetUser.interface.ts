@@ -4,7 +4,9 @@ interface RequestGetUser extends Request{
   query: {
     page: string,
     size: string,
-    cond: string
+    cond: string,
+    sort : string,
+    field: string,
   }
 }
 

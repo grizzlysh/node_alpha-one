@@ -6,10 +6,10 @@ export const getPagination = (page: any, size: any) => {
   return { limit, offset };
 };
 
-export const getPagingData = (data: any, page: any, limit: any) => {
-  const { count: totalItems, rows: items } = data;
+export const getPagingData = (data: any[], totalData: number, page: any, limit: any) => {
+  // const { count: totalData, rows: data } = data;
   const currentPage                        = page ? +page : 0;
-  const totalPages                         = Math.ceil(totalItems / limit);
+  const totalPages                         = Math.ceil(totalData / limit);
 
-  return { totalItems, items, totalPages, currentPage };
+  return { data, totalData, currentPage, totalPages };
 };

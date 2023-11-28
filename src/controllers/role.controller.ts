@@ -5,7 +5,7 @@ import bcryptjs from 'bcryptjs';
 import { Request, Response } from "express";
 import { PrismaClient, Prisma } from '@prisma/client';
 
-import { getPagination } from '../utils/pagination.util';
+import { getPagination, getPagingData } from '../utils/pagination.util';
 import SuccessException from '../exceptions/200_success.exception';
 import BasicErrorException from '../exceptions/700_basicError.exception';
 import InvalidInputException from '../exceptions/701_invalidInput.exception';
@@ -166,7 +166,7 @@ export async function createRole(req: RequestCreateRole, res: Response): Promise
       
       const responseData = new SuccessException("Permission created successfully")
 
-      return res.send(responseData)
+      return res.send(responseData.getResponse)
 
     } catch (err: any) {
       let exception= new BasicErrorException(err.message);
@@ -183,11 +183,11 @@ export async function createRole(req: RequestCreateRole, res: Response): Promise
 export async function getRole(req: RequestGetRole, res: Response): Promise<Response> {
   try {
     console.log("getall")
-    const { page, size, cond } = req.query;
-    const condition            = cond ? cond : undefined;
-    const { limit, offset }    = getPagination(page, size);
+    const { page, size, cond, sort, field } = req.query;
+    const condition                         = cond ? cond : undefined;
+    const { limit, offset }                 = getPagination(page, size);
 
-    const roleList = await prisma.roles.findMany({
+    const query: Prisma.rolesFindManyArgs = {
       skip: offset,
       take: limit,
       where: {
@@ -197,7 +197,7 @@ export async function getRole(req: RequestGetRole, res: Response): Promise<Respo
         ]
       },
       orderBy: {
-        name: 'asc',
+        [field]: sort,
       },
       select: {
         uid         : true,
@@ -223,15 +223,24 @@ export async function getRole(req: RequestGetRole, res: Response): Promise<Respo
           }
         },
       }
-    });
-    
-    const getRoleData: ResponseGetRole = {
-      data: roleList
     }
+
+    const [roleList, roleCount] = await prisma.$transaction([
+      prisma.roles.findMany(query),
+      prisma.roles.count({ where: query.where}),
+    ])
     
+    const roleData                     = getPagingData(roleList, roleCount, page, limit);
+    const getRoleData: ResponseGetRole = {
+      data        : roleData.data,
+      total_data  : roleData.totalData,
+      current_page: roleData.currentPage,
+      total_pages : roleData.totalPages
+    }
+
     const responseData = new SuccessException("Role Data received", getRoleData)
 
-    return res.send(responseData)
+    return res.send(responseData.getResponse)
 
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
@@ -300,7 +309,7 @@ export async function getRoleById(req: RequestGetRoleByID, res: Response): Promi
     
     const responseData = new SuccessException("Role Data received", getRoleData)
 
-    return res.send(responseData)
+    return res.send(responseData.getResponse)
 
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
@@ -460,7 +469,7 @@ export async function editRole(req: RequestEditRole, res: Response): Promise<Res
 
       const responseData = new SuccessException("Permission edited successfully", updateRole)
 
-      return res.send(responseData)
+      return res.send(responseData.getResponse)
 
     } catch (err: any) {
       console.log("error")
@@ -528,7 +537,7 @@ export async function deleteRole(req: RequestDeleteRole, res: Response): Promise
       
       const responseData = new SuccessException("Role deleted successfully")
 
-      return res.send(responseData)
+      return res.send(responseData.getResponse)
 
     } catch (err: any) {
       let exception= new BasicErrorException(err.message);

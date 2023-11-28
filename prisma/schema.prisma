@@ -34,7 +34,7 @@ model permissions {
   id              Int               @id @default(autoincrement())
   uid             String            @unique @default(uuid()) @db.Uuid
   name            String            @unique @db.VarChar(191)
-  display_name    String           @unique @db.VarChar(191)
+  display_name    String            @unique @db.VarChar(191)
   description     String?           @db.Text
   created_at      DateTime          @db.Timestamp(0)
   updated_at      DateTime          @db.Timestamp(0)
