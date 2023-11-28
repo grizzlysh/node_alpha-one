@@ -50,7 +50,7 @@ export async function loginHandler(req: RequestLogin, res: Response): Promise<Re
     
     const inputData = req.body;
     const username  = inputData.username.trim();
-    const password  = inputData.username.trim();
+    const password  = inputData.password.trim();
     
     const checkUser= await prisma.users.findFirst({
       where: {
@@ -80,10 +80,8 @@ export async function loginHandler(req: RequestLogin, res: Response): Promise<Re
       const exception = new UserNotFoundException();
       return res.status(400).send(exception.getResponse)
     }
-  
-    const salt            = await bcryptjs.genSalt(10);
-    const encryptPassword = await bcryptjs.hash(password, salt);
-    const validPassword = await bcryptjs.compare(encryptPassword, checkUser.password);
+    
+    const validPassword = await bcryptjs.compare(password, checkUser.password);
 
     if (!validPassword){
       const exception = new InvalidInputException("Wrong Password");
