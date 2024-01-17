@@ -9,32 +9,31 @@ import { getPagination, getPagingData } from '../utils/pagination.util';
 import SuccessException from '../exceptions/200_success.exception';
 import BasicErrorException from '../exceptions/700_basicError.exception';
 import InvalidInputException from '../exceptions/701_invalidInput.exception';
-import PermissionNotFoundException from '../exceptions/709_permissionNotFound.exception';
-import PermissionAlreadyExistException from '../exceptions/708_permissionAlreadyExist.exception';
+import ShapeNotFoundException from '../exceptions/711_shapeNotFound.exception';
+import ShapeAlreadyExistException from '../exceptions/710_shapeAlreadyExist.exception';
 
-import RequestGetPermission from '../interfaces/permission/requestGetPermission.interface';
-import ResponseGetPermission from '../interfaces/permission/responseGetPermission.interface';
-import RequestEditPermission from '../interfaces/permission/requestEditPermission.interface';
-import RequestDeletePermission from '../interfaces/permission/requestDeletePermission.interface';
-import RequestCreatePermission from '../interfaces/permission/requestCreatePermission.interface';
-import RequestGetPermissionByID from '../interfaces/permission/requestGetPermissionByID.interface';
-import ResponseGetPermissionByID from '../interfaces/permission/responseGetPermissionByID.interface';
+import RequestGetShape from '../interfaces/shape/requestGetShape.interface';
+import ResponseGetShape from '../interfaces/shape/responseGetShape.interface';
+import RequestEditShape from '../interfaces/shape/requestEditShape.interface';
+import RequestDeleteShape from '../interfaces/shape/requestDeleteShape.interface';
+import RequestCreateShape from '../interfaces/shape/requestCreateShape.interface';
+import RequestGetShapeByID from '../interfaces/shape/requestGetShapeByID.interface';
+import ResponseGetShapeByID from '../interfaces/shape/responseGetShapeByID.interface';
 
 const prisma = new PrismaClient({
   log: ['query'],
 });
 
-export async function createPermission(req: RequestCreatePermission, res: Response): Promise<Response> {
+export async function createShape(req: RequestCreateShape, res: Response): Promise<Response> {
   
   try {
     const schema = Joi.object({
-      display_name: Joi.string().min(4).max(30).required().messages({
+      name: Joi.string().min(1).max(60).required().messages({
         // 'string.base': `"a" should be a type of 'text'`,
-        'string.empty': `Display Name cannot be an empty field`,
-        'string.min'  : `Display Name should have a minimum length of 4`,
-        'any.required': `Display Name is a required field`
+        'string.empty': `Name cannot be an empty field`,
+        'string.min'  : `Name should have a minimum length of 1`,
+        'any.required': `Name is a required field`
       }),
-      description: Joi.string().max(191).allow('').optional(),
       current_user_uid: Joi.string().min(36).max(36).required().messages({
         'any.required': `Please try again`
       }),
@@ -48,22 +47,20 @@ export async function createPermission(req: RequestCreatePermission, res: Respon
     }
 
     const inputData        = req.body;
-    const display_name     = inputData.display_name.trim().toLowerCase();
-    const description      = inputData.description.trim();
+    const name             = inputData.name.trim().toLowerCase();
     const current_user_uid = inputData.current_user_uid.trim();
-    let   nameFormat       = display_name.replace(/\s+/g, '-');
 
-    const checkPermission = await prisma.permissions.findFirst({
+    const checkShape = await prisma.shapes.findFirst({
       where: {
         AND: [
-          {display_name: display_name,},
+          {name: name,},
           {deleted_at: null,},
         ]
       },
     })
 
-    if (checkPermission) {
-      const exception = new PermissionAlreadyExistException("Permission Name Already Exist");
+    if (checkShape) {
+      const exception = new ShapeAlreadyExistException("Shape Name Already Exist");
       return res.status(400).send(exception.getResponse);
     }
 
@@ -77,11 +74,9 @@ export async function createPermission(req: RequestCreatePermission, res: Respon
     })
 
     try {
-      let permission = await prisma.permissions.create({
+      let shape = await prisma.shapes.create({
         data: {
-          name        : nameFormat,
-          display_name: display_name,
-          description : description,
+          name        : name,
           created_at  : moment().tz('Asia/Jakarta').format().toString(),
           updated_at  : moment().tz('Asia/Jakarta').format().toString(),
           createdby   : {
@@ -97,7 +92,7 @@ export async function createPermission(req: RequestCreatePermission, res: Respon
         },
       });
       
-      const responseData = new SuccessException("Permission created successfully")
+      const responseData = new SuccessException("Shape created successfully")
 
       return res.send(responseData.getResponse)
 
@@ -113,7 +108,7 @@ export async function createPermission(req: RequestCreatePermission, res: Respon
 
 }
 
-export async function getPermission(req: RequestGetPermission, res: Response): Promise<Response> {
+export async function getShape(req: RequestGetShape, res: Response): Promise<Response> {
   try {
     const { page, size, cond, sort, field } = req.query;
     const condition                         = cond ? cond : undefined;
@@ -121,7 +116,7 @@ export async function getPermission(req: RequestGetPermission, res: Response): P
     const fieldBy                           = field ? field : 'id';
     const { limit, offset }                 = getPagination(page, size);
 
-    const query: Prisma.permissionsFindManyArgs = {
+    const query: Prisma.shapesFindManyArgs = {
       skip: offset,
       take: limit,
       where: {
@@ -130,7 +125,6 @@ export async function getPermission(req: RequestGetPermission, res: Response): P
           {name: {
             contains: condition
           }}
-          // {...( condition ? { name: {contains: condition?.toString()} } : {} )}
         ]
       },
       orderBy: {
@@ -139,8 +133,6 @@ export async function getPermission(req: RequestGetPermission, res: Response): P
       select: {
         uid         : true,
         name        : true,
-        display_name: true,
-        description : true,
         created_at  : true,
         updated_at  : true,
         deleted_at  : true,
@@ -162,20 +154,20 @@ export async function getPermission(req: RequestGetPermission, res: Response): P
       }
     }
 
-    const [permissionList, permissionCount] = await prisma.$transaction([
-      prisma.permissions.findMany(query),
-      prisma.permissions.count({ where: query.where}),
+    const [shapeList, shapeCount] = await prisma.$transaction([
+      prisma.shapes.findMany(query),
+      prisma.shapes.count({ where: query.where}),
     ])
     
-    const permissionData                           = getPagingData(permissionList, permissionCount, page, limit);
-    const getPermissionData: ResponseGetPermission = {
-      data        : permissionData.data,
-      total_data  : permissionData.totalData,
-      current_page: permissionData.currentPage,
-      total_pages : permissionData.totalPages
+    const shapeData                      = getPagingData(shapeList, shapeCount, page, limit);
+    const getShapeData: ResponseGetShape = {
+      data        : shapeData.data,
+      total_data  : shapeData.totalData,
+      current_page: shapeData.currentPage,
+      total_pages : shapeData.totalPages
     }
     
-    const responseData = new SuccessException("Permission Data received", getPermissionData)
+    const responseData = new SuccessException("Shape Data received", getShapeData)
 
     return res.send(responseData.getResponse)
 
@@ -185,23 +177,21 @@ export async function getPermission(req: RequestGetPermission, res: Response): P
   }
 }
 
-export async function getPermissionById(req: RequestGetPermissionByID, res: Response): Promise<Response> {
+export async function getShapeById(req: RequestGetShapeByID, res: Response): Promise<Response> {
   try {
 
-    const { permission_uid }   = req.params;
+    const { shape_uid }   = req.params;
 
-    const permission = await prisma.permissions.findFirst({
+    const shape = await prisma.shapes.findFirst({
       where: {
         AND: [
-          {uid: permission_uid,},
+          {uid: shape_uid,},
           {deleted_at: null,},
         ]
       },
       select: {
         uid         : true,
         name        : true,
-        display_name: true,
-        description : true,
         created_at  : true,
         updated_at  : true,
         deleted_at  : true,
@@ -223,16 +213,16 @@ export async function getPermissionById(req: RequestGetPermissionByID, res: Resp
       }
     })
 
-    if (!permission) {
-      const exception = new PermissionNotFoundException();
+    if (!shape) {
+      const exception = new ShapeNotFoundException();
       return res.status(400).send(exception.getResponse);
     }
 
-    const getPermissionData: ResponseGetPermissionByID = {
-      data: permission
+    const getShapeData: ResponseGetShapeByID = {
+      data: shape
     }
     
-    const responseData = new SuccessException("Permission Data received", getPermissionData)
+    const responseData = new SuccessException("Shape Data received", getShapeData)
 
     return res.send(responseData.getResponse)
 
@@ -242,20 +232,19 @@ export async function getPermissionById(req: RequestGetPermissionByID, res: Resp
   }
 }
 
-export async function editPermission(req: RequestEditPermission, res: Response): Promise<Response> {
+export async function editShape(req: RequestEditShape, res: Response): Promise<Response> {
   try {
 
-    const { permission_uid } = req.params;
-    const inputData          = req.body;
+    const { shape_uid } = req.params;
+    const inputData     = req.body;
 
     const schema = Joi.object({
-      display_name    : Joi.string().min(4).max(30).required().messages({
+      name: Joi.string().min(1).max(60).required().messages({
         // 'string.base': `"a" should be a type of 'text'`,
-        'string.empty': `Display Name cannot be an empty field`,
-        'string.min': `Display Name should have a minimum length of 4`,
-        'any.required': `Display Name is a required field`
+        'string.empty': `Name cannot be an empty field`,
+        'string.min'  : `Name should have a minimum length of 1`,
+        'any.required': `Name is a required field`
       }),
-      description     : Joi.string().max(191).allow('').optional(),
       current_user_uid: Joi.string().min(36).max(36).required().messages({
         'any.required': `Please try again`
       }),
@@ -268,40 +257,36 @@ export async function editPermission(req: RequestEditPermission, res: Response):
       return res.status(400).send(exception.getResponse);
     }
     
-    const editPermission     = {
-      display_name    : inputData.display_name.trim().toLowerCase(),
-      description     : inputData.description.trim(),
+    const editShape     = {
+      name            : inputData.name.trim().toLowerCase(),
       current_user_uid: inputData.current_user_uid.trim(),
     }
-    let nameFormat = editPermission.display_name.replace(/\s+/g, '-');
     
-    const checkPermission = await prisma.permissions.findFirst({
+    const checkShape = await prisma.shapes.findFirst({
       where: {
         AND: [
-          {uid: permission_uid},
+          {uid: shape_uid},
           {deleted_at: null,},
         ]
       },
       select: {
         uid         : true,
         name        : true,
-        display_name: true,
-        description : true,
       }
     })
 
-    if(checkPermission?.display_name != editPermission.display_name) {
-      const checkDisplayName = await prisma.permissions.findFirst({
+    if(checkShape?.name != editShape.name) {
+      const checkName = await prisma.shapes.findFirst({
         where: {
           AND: [
-            {display_name: editPermission.display_name,},
+            {name: editShape.name,},
             {deleted_at: null,},
           ]
         },
       })
 
-      if (checkDisplayName) {
-        const exception = new PermissionAlreadyExistException("Display Name Already Exist");
+      if (checkName) {
+        const exception = new ShapeAlreadyExistException("Name Already Exist");
         return res.status(400).send(exception.getResponse);
       }
     }
@@ -309,21 +294,19 @@ export async function editPermission(req: RequestEditPermission, res: Response):
     const currentUser = await prisma.users.findFirst({
       where: {
         AND: [
-          {uid: editPermission.current_user_uid,},
+          {uid: editShape.current_user_uid,},
           {deleted_at: null,},
         ]
       },
     })
 
     try {
-      const updatePermission = await prisma.permissions.update({
+      const updateShape = await prisma.shapes.update({
         where: {
-          uid: permission_uid
+          uid: shape_uid
         },
         data: {
-          name             : nameFormat,
-          display_name     : editPermission.display_name,
-          description      : editPermission.description,
+          name             : editShape.name,
           updated_at       : moment().tz('Asia/Jakarta').format().toString(),
           updatedby        : {
             connect : {
@@ -334,8 +317,6 @@ export async function editPermission(req: RequestEditPermission, res: Response):
         select: {
           uid         : true,
           name        : true,
-          display_name: true,
-          description : true,
           created_at  : true,
           updated_at  : true,
           deleted_at  : true,
@@ -357,7 +338,7 @@ export async function editPermission(req: RequestEditPermission, res: Response):
         }
       });
 
-      const responseData = new SuccessException("Permission edited successfully", updatePermission)
+      const responseData = new SuccessException("Shape edited successfully", updateShape)
 
       return res.send(responseData.getResponse)
 
@@ -372,24 +353,24 @@ export async function editPermission(req: RequestEditPermission, res: Response):
   }
 }
 
-export async function deletePermission(req: RequestDeletePermission, res: Response): Promise<Response> {
+export async function deleteShape(req: RequestDeleteShape, res: Response): Promise<Response> {
   try {
     
-    const { permission_uid } = req.params;
-    const inputData          = req.body;
-    const current_user_uid   = inputData.current_user_uid.trim()
+    const { shape_uid }    = req.params;
+    const inputData        = req.body;
+    const current_user_uid = inputData.current_user_uid.trim()
     
-    const checkPermission = await prisma.permissions.findFirst({
+    const checkShape = await prisma.shapes.findFirst({
       where: {
         AND: [
-          {uid: permission_uid},
+          {uid: shape_uid},
           {deleted_at: null,},
         ]
       }
     })
 
-    if (!checkPermission) {
-      const exception = new PermissionNotFoundException();
+    if (!checkShape) {
+      const exception = new ShapeNotFoundException();
       return res.status(400).send(exception.getResponse);
     }
     
@@ -403,9 +384,9 @@ export async function deletePermission(req: RequestDeletePermission, res: Respon
     })
 
     try {
-      const permission = await prisma.permissions.update({
+      const shape = await prisma.shapes.update({
         where: {
-          uid: permission_uid
+          uid: shape_uid
         },
         data: {
           updated_at: moment().tz('Asia/Jakarta').format().toString(),
@@ -423,7 +404,7 @@ export async function deletePermission(req: RequestDeletePermission, res: Respon
         }
       });
       
-      const responseData = new SuccessException("Permission deleted successfully")
+      const responseData = new SuccessException("Shape deleted successfully")
 
       return res.send(responseData.getResponse)
 

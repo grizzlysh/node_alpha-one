@@ -17,6 +17,6 @@ RoleRoutes.get('/:role_uid', checkJwt, getRoleById);
 RoleRoutes.put('/:role_uid', checkJwt, editRole);
 
 // delete role by id
-RoleRoutes.delete('/:role_uid', checkJwt, deleteRole);
+RoleRoutes.patch('/:role_uid', checkJwt, deleteRole);
 
 export default RoleRoutes;

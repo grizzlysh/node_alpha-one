@@ -9,32 +9,31 @@ import { getPagination, getPagingData } from '../utils/pagination.util';
 import SuccessException from '../exceptions/200_success.exception';
 import BasicErrorException from '../exceptions/700_basicError.exception';
 import InvalidInputException from '../exceptions/701_invalidInput.exception';
-import PermissionNotFoundException from '../exceptions/709_permissionNotFound.exception';
-import PermissionAlreadyExistException from '../exceptions/708_permissionAlreadyExist.exception';
+import TypeNotFoundException from '../exceptions/713_typeNotFound.exception';
+import TypeAlreadyExistException from '../exceptions/712_typeAlreadyExist.exception';
 
-import RequestGetPermission from '../interfaces/permission/requestGetPermission.interface';
-import ResponseGetPermission from '../interfaces/permission/responseGetPermission.interface';
-import RequestEditPermission from '../interfaces/permission/requestEditPermission.interface';
-import RequestDeletePermission from '../interfaces/permission/requestDeletePermission.interface';
-import RequestCreatePermission from '../interfaces/permission/requestCreatePermission.interface';
-import RequestGetPermissionByID from '../interfaces/permission/requestGetPermissionByID.interface';
-import ResponseGetPermissionByID from '../interfaces/permission/responseGetPermissionByID.interface';
+import RequestGetType from '../interfaces/type/requestGetType.interface';
+import ResponseGetType from '../interfaces/type/responseGetType.interface';
+import RequestEditType from '../interfaces/type/requestEditType.interface';
+import RequestDeleteType from '../interfaces/type/requestDeleteType.interface';
+import RequestCreateType from '../interfaces/type/requestCreateType.interface';
+import RequestGetTypeByID from '../interfaces/type/requestGetTypeByID.interface';
+import ResponseGetTypeByID from '../interfaces/type/responseGetTypeByID.interface';
 
 const prisma = new PrismaClient({
   log: ['query'],
 });
 
-export async function createPermission(req: RequestCreatePermission, res: Response): Promise<Response> {
+export async function createType(req: RequestCreateType, res: Response): Promise<Response> {
   
   try {
     const schema = Joi.object({
-      display_name: Joi.string().min(4).max(30).required().messages({
+      name: Joi.string().min(1).max(60).required().messages({
         // 'string.base': `"a" should be a type of 'text'`,
-        'string.empty': `Display Name cannot be an empty field`,
-        'string.min'  : `Display Name should have a minimum length of 4`,
-        'any.required': `Display Name is a required field`
+        'string.empty': `Name cannot be an empty field`,
+        'string.min'  : `Name should have a minimum length of 1`,
+        'any.required': `Name is a required field`
       }),
-      description: Joi.string().max(191).allow('').optional(),
       current_user_uid: Joi.string().min(36).max(36).required().messages({
         'any.required': `Please try again`
       }),
@@ -48,22 +47,20 @@ export async function createPermission(req: RequestCreatePermission, res: Respon
     }
 
     const inputData        = req.body;
-    const display_name     = inputData.display_name.trim().toLowerCase();
-    const description      = inputData.description.trim();
+    const name             = inputData.name.trim().toLowerCase();
     const current_user_uid = inputData.current_user_uid.trim();
-    let   nameFormat       = display_name.replace(/\s+/g, '-');
 
-    const checkPermission = await prisma.permissions.findFirst({
+    const checkType = await prisma.types.findFirst({
       where: {
         AND: [
-          {display_name: display_name,},
+          {name: name,},
           {deleted_at: null,},
         ]
       },
     })
 
-    if (checkPermission) {
-      const exception = new PermissionAlreadyExistException("Permission Name Already Exist");
+    if (checkType) {
+      const exception = new TypeAlreadyExistException("Type Name Already Exist");
       return res.status(400).send(exception.getResponse);
     }
 
@@ -77,11 +74,9 @@ export async function createPermission(req: RequestCreatePermission, res: Respon
     })
 
     try {
-      let permission = await prisma.permissions.create({
+      let type = await prisma.types.create({
         data: {
-          name        : nameFormat,
-          display_name: display_name,
-          description : description,
+          name        : name,
           created_at  : moment().tz('Asia/Jakarta').format().toString(),
           updated_at  : moment().tz('Asia/Jakarta').format().toString(),
           createdby   : {
@@ -97,7 +92,7 @@ export async function createPermission(req: RequestCreatePermission, res: Respon
         },
       });
       
-      const responseData = new SuccessException("Permission created successfully")
+      const responseData = new SuccessException("Type created successfully")
 
       return res.send(responseData.getResponse)
 
@@ -113,7 +108,7 @@ export async function createPermission(req: RequestCreatePermission, res: Respon
 
 }
 
-export async function getPermission(req: RequestGetPermission, res: Response): Promise<Response> {
+export async function getType(req: RequestGetType, res: Response): Promise<Response> {
   try {
     const { page, size, cond, sort, field } = req.query;
     const condition                         = cond ? cond : undefined;
@@ -121,7 +116,7 @@ export async function getPermission(req: RequestGetPermission, res: Response): P
     const fieldBy                           = field ? field : 'id';
     const { limit, offset }                 = getPagination(page, size);
 
-    const query: Prisma.permissionsFindManyArgs = {
+    const query: Prisma.typesFindManyArgs = {
       skip: offset,
       take: limit,
       where: {
@@ -130,7 +125,6 @@ export async function getPermission(req: RequestGetPermission, res: Response): P
           {name: {
             contains: condition
           }}
-          // {...( condition ? { name: {contains: condition?.toString()} } : {} )}
         ]
       },
       orderBy: {
@@ -139,8 +133,6 @@ export async function getPermission(req: RequestGetPermission, res: Response): P
       select: {
         uid         : true,
         name        : true,
-        display_name: true,
-        description : true,
         created_at  : true,
         updated_at  : true,
         deleted_at  : true,
@@ -162,20 +154,20 @@ export async function getPermission(req: RequestGetPermission, res: Response): P
       }
     }
 
-    const [permissionList, permissionCount] = await prisma.$transaction([
-      prisma.permissions.findMany(query),
-      prisma.permissions.count({ where: query.where}),
+    const [typeList, typeCount] = await prisma.$transaction([
+      prisma.types.findMany(query),
+      prisma.types.count({ where: query.where}),
     ])
     
-    const permissionData                           = getPagingData(permissionList, permissionCount, page, limit);
-    const getPermissionData: ResponseGetPermission = {
-      data        : permissionData.data,
-      total_data  : permissionData.totalData,
-      current_page: permissionData.currentPage,
-      total_pages : permissionData.totalPages
+    const typeData                     = getPagingData(typeList, typeCount, page, limit);
+    const getTypeData: ResponseGetType = {
+      data        : typeData.data,
+      total_data  : typeData.totalData,
+      current_page: typeData.currentPage,
+      total_pages : typeData.totalPages
     }
     
-    const responseData = new SuccessException("Permission Data received", getPermissionData)
+    const responseData = new SuccessException("Type Data received", getTypeData)
 
     return res.send(responseData.getResponse)
 
@@ -185,23 +177,21 @@ export async function getPermission(req: RequestGetPermission, res: Response): P
   }
 }
 
-export async function getPermissionById(req: RequestGetPermissionByID, res: Response): Promise<Response> {
+export async function getTypeById(req: RequestGetTypeByID, res: Response): Promise<Response> {
   try {
 
-    const { permission_uid }   = req.params;
+    const { type_uid }   = req.params;
 
-    const permission = await prisma.permissions.findFirst({
+    const type = await prisma.types.findFirst({
       where: {
         AND: [
-          {uid: permission_uid,},
+          {uid: type_uid,},
           {deleted_at: null,},
         ]
       },
       select: {
         uid         : true,
         name        : true,
-        display_name: true,
-        description : true,
         created_at  : true,
         updated_at  : true,
         deleted_at  : true,
@@ -223,16 +213,16 @@ export async function getPermissionById(req: RequestGetPermissionByID, res: Resp
       }
     })
 
-    if (!permission) {
-      const exception = new PermissionNotFoundException();
+    if (!type) {
+      const exception = new TypeNotFoundException();
       return res.status(400).send(exception.getResponse);
     }
 
-    const getPermissionData: ResponseGetPermissionByID = {
-      data: permission
+    const getTypeData: ResponseGetTypeByID = {
+      data: type
     }
     
-    const responseData = new SuccessException("Permission Data received", getPermissionData)
+    const responseData = new SuccessException("Type Data received", getTypeData)
 
     return res.send(responseData.getResponse)
 
@@ -242,20 +232,19 @@ export async function getPermissionById(req: RequestGetPermissionByID, res: Resp
   }
 }
 
-export async function editPermission(req: RequestEditPermission, res: Response): Promise<Response> {
+export async function editType(req: RequestEditType, res: Response): Promise<Response> {
   try {
 
-    const { permission_uid } = req.params;
-    const inputData          = req.body;
+    const { type_uid } = req.params;
+    const inputData    = req.body;
 
     const schema = Joi.object({
-      display_name    : Joi.string().min(4).max(30).required().messages({
+      name: Joi.string().min(1).max(60).required().messages({
         // 'string.base': `"a" should be a type of 'text'`,
-        'string.empty': `Display Name cannot be an empty field`,
-        'string.min': `Display Name should have a minimum length of 4`,
-        'any.required': `Display Name is a required field`
+        'string.empty': `Name cannot be an empty field`,
+        'string.min'  : `Name should have a minimum length of 1`,
+        'any.required': `Name is a required field`
       }),
-      description     : Joi.string().max(191).allow('').optional(),
       current_user_uid: Joi.string().min(36).max(36).required().messages({
         'any.required': `Please try again`
       }),
@@ -268,40 +257,36 @@ export async function editPermission(req: RequestEditPermission, res: Response):
       return res.status(400).send(exception.getResponse);
     }
     
-    const editPermission     = {
-      display_name    : inputData.display_name.trim().toLowerCase(),
-      description     : inputData.description.trim(),
+    const editType     = {
+      name            : inputData.name.trim().toLowerCase(),
       current_user_uid: inputData.current_user_uid.trim(),
     }
-    let nameFormat = editPermission.display_name.replace(/\s+/g, '-');
     
-    const checkPermission = await prisma.permissions.findFirst({
+    const checkType = await prisma.types.findFirst({
       where: {
         AND: [
-          {uid: permission_uid},
+          {uid: type_uid},
           {deleted_at: null,},
         ]
       },
       select: {
         uid         : true,
         name        : true,
-        display_name: true,
-        description : true,
       }
     })
 
-    if(checkPermission?.display_name != editPermission.display_name) {
-      const checkDisplayName = await prisma.permissions.findFirst({
+    if(checkType?.name != editType.name) {
+      const checkName = await prisma.types.findFirst({
         where: {
           AND: [
-            {display_name: editPermission.display_name,},
+            {name: editType.name,},
             {deleted_at: null,},
           ]
         },
       })
 
-      if (checkDisplayName) {
-        const exception = new PermissionAlreadyExistException("Display Name Already Exist");
+      if (checkName) {
+        const exception = new TypeAlreadyExistException("Name Already Exist");
         return res.status(400).send(exception.getResponse);
       }
     }
@@ -309,21 +294,19 @@ export async function editPermission(req: RequestEditPermission, res: Response):
     const currentUser = await prisma.users.findFirst({
       where: {
         AND: [
-          {uid: editPermission.current_user_uid,},
+          {uid: editType.current_user_uid,},
           {deleted_at: null,},
         ]
       },
     })
 
     try {
-      const updatePermission = await prisma.permissions.update({
+      const updateType = await prisma.types.update({
         where: {
-          uid: permission_uid
+          uid: type_uid
         },
         data: {
-          name             : nameFormat,
-          display_name     : editPermission.display_name,
-          description      : editPermission.description,
+          name             : editType.name,
           updated_at       : moment().tz('Asia/Jakarta').format().toString(),
           updatedby        : {
             connect : {
@@ -334,8 +317,6 @@ export async function editPermission(req: RequestEditPermission, res: Response):
         select: {
           uid         : true,
           name        : true,
-          display_name: true,
-          description : true,
           created_at  : true,
           updated_at  : true,
           deleted_at  : true,
@@ -357,7 +338,7 @@ export async function editPermission(req: RequestEditPermission, res: Response):
         }
       });
 
-      const responseData = new SuccessException("Permission edited successfully", updatePermission)
+      const responseData = new SuccessException("Type edited successfully", updateType)
 
       return res.send(responseData.getResponse)
 
@@ -372,24 +353,24 @@ export async function editPermission(req: RequestEditPermission, res: Response):
   }
 }
 
-export async function deletePermission(req: RequestDeletePermission, res: Response): Promise<Response> {
+export async function deleteType(req: RequestDeleteType, res: Response): Promise<Response> {
   try {
     
-    const { permission_uid } = req.params;
-    const inputData          = req.body;
-    const current_user_uid   = inputData.current_user_uid.trim()
+    const { type_uid }     = req.params;
+    const inputData        = req.body;
+    const current_user_uid = inputData.current_user_uid.trim()
     
-    const checkPermission = await prisma.permissions.findFirst({
+    const checkType = await prisma.types.findFirst({
       where: {
         AND: [
-          {uid: permission_uid},
+          {uid: type_uid},
           {deleted_at: null,},
         ]
       }
     })
 
-    if (!checkPermission) {
-      const exception = new PermissionNotFoundException();
+    if (!checkType) {
+      const exception = new TypeNotFoundException();
       return res.status(400).send(exception.getResponse);
     }
     
@@ -403,9 +384,9 @@ export async function deletePermission(req: RequestDeletePermission, res: Respon
     })
 
     try {
-      const permission = await prisma.permissions.update({
+      const type = await prisma.types.update({
         where: {
-          uid: permission_uid
+          uid: type_uid
         },
         data: {
           updated_at: moment().tz('Asia/Jakarta').format().toString(),
@@ -423,7 +404,7 @@ export async function deletePermission(req: RequestDeletePermission, res: Respon
         }
       });
       
-      const responseData = new SuccessException("Permission deleted successfully")
+      const responseData = new SuccessException("Type deleted successfully")
 
       return res.send(responseData.getResponse)
 

@@ -1,4 +1,4 @@
-import moment from 'moment';
+import moment from 'moment-timezone';
 import jwt from 'jsonwebtoken';
 import Joi, { not } from 'joi';
 import bcryptjs from 'bcryptjs';
@@ -23,6 +23,7 @@ import RequestCreateUser from '../interfaces/user/requestCreateUser.interface';
 import RequestDeleteUser from '../interfaces/user/requestDeleteUser.interface';
 import RequestGetUserByID from '../interfaces/user/requestGetUserByID.interface';
 import ResponseGetUserByID from '../interfaces/user/responseGetUserByID.interface';
+import RequestResetPassword from '../interfaces/user/requestResetPassword.interface';
 
 const prisma = new PrismaClient({
   log: ['query'],
@@ -80,8 +81,8 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
     }
 
     const inputData        = req.body;
-    const username         = inputData.username.trim();
-    const name             = inputData.name.trim();
+    const username         = inputData.username.trim().toLowerCase();
+    const name             = inputData.name.trim().toLowerCase();
     const sex              = inputData.sex.trim();
     const email            = inputData.email.trim();
     const password         = inputData.password.trim();
@@ -96,12 +97,10 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
         ],
         role: {
           permission_role: {
-            every: {
-              AND: {
-                write_permit: true,
-                permissions: {
-                  name: Menu.USER,
-                }
+            some: {
+              write_permit: true,
+              permissions : {
+                name: Menu.USER,
               }
             }
           }
@@ -189,8 +188,8 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
           sex       : sex,
           email     : email,
           password  : encryptPassword,
-          created_at: moment().format().toString(),
-          updated_at: moment().format().toString(),
+          created_at: moment().tz('Asia/Jakarta').format().toString(),
+          updated_at: moment().tz('Asia/Jakarta').format().toString(),
           createdby : {
             connect: {
               id: currentUser?.id
@@ -241,6 +240,8 @@ export async function getUser(req: RequestGetUser, res: Response): Promise<Respo
   try {
     const { page, size, cond, sort, field } = req.query;
     const condition                         = cond ? cond : undefined;
+    const sortBy                            = sort ? sort : 'asc';
+    const fieldBy                           = field ? field : 'id';
     const { limit, offset }                 = getPagination(page, size);
 
     const query: Prisma.usersFindManyArgs = {
@@ -264,7 +265,7 @@ export async function getUser(req: RequestGetUser, res: Response): Promise<Respo
         ]
       },
       orderBy: {
-        [field]: sort,
+        [fieldBy]: sortBy,
       },
       select: {
         uid              : true,
@@ -275,8 +276,9 @@ export async function getUser(req: RequestGetUser, res: Response): Promise<Respo
         email_verified_at: true,
         role: {
           select: {
-            uid : true,
-            name: true,
+            uid         : true,
+            name        : true,
+            display_name: true,
           }
         },
         created_at       : true,
@@ -346,7 +348,9 @@ export async function getUserById(req: RequestGetUserByID, res: Response): Promi
         email_verified_at: true,
         role: {
           select: {
-            name: true,
+            uid         : true,
+            name        : true,
+            display_name: true,
           }
         },
         created_at       : true,
@@ -414,11 +418,12 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
         'string.email': `Email is not valid format`,
         'any.required': `Email is a required field`
       }),
-      password: Joi.string().min(6).max(200).required().messages({
-        'string.empty': `Password cannot be an empty field`,
-        'string.min': `Password should have a minimum length of 6`,
-        'any.required': `Password is a required field`
-      }),
+      password: Joi.string().allow('').optional(),
+      // password: Joi.string().min(6).max(200).required().messages({
+      //   'string.empty': `Password cannot be an empty field`,
+      //   'string.min'  : `Password should have a minimum length of 6`,
+      //   'any.required': `Password is a required field`
+      // }),
       role_uid: Joi.string().required().messages({
         'string.empty': `Role cannot be an empty field`,
         'any.required': `Role is a required field`
@@ -434,8 +439,8 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
     }
 
     const editUser     = {
-      username        : inputData.username.trim(),
-      name            : inputData.name.trim(),
+      username        : inputData.username.trim().toLowerCase(),
+      name            : inputData.name.trim().toLowerCase(),
       sex             : inputData.sex.trim(),
       email           : inputData.email.trim(),
       password        : inputData.password.trim(),
@@ -524,9 +529,15 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
         ]
       },
     })
-
     const salt            = await bcryptjs.genSalt(10);
-    const encryptPassword = await bcryptjs.hash(editUser.password, salt);
+    let   encryptPassword;
+
+    if (editUser.password != '') {
+      encryptPassword = await bcryptjs.hash(editUser.password, salt);
+    }
+    else {
+      encryptPassword = checkUser?.password
+    }
 
     try {
       const updateUser = await prisma.users.update({
@@ -540,7 +551,7 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
           email            : editUser.email,
           password         : encryptPassword,
           email_verified_at: isEmailUpdated ? null : checkUser?.email_verified_at,
-          updated_at       : moment().format().toString(),
+          updated_at       : moment().tz('Asia/Jakarta').format().toString(),
           updatedby        : {
             connect : {
               id: currentUser?.id
@@ -563,7 +574,9 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
           email_verified_at: true,
           role: {
             select: {
-              name: true,
+              uid         : true,
+              name        : true,
+              display_name: true,
             }
           },
           created_at       : true,
@@ -626,6 +639,133 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
   }
 }
 
+export async function resetPassword(req: RequestResetPassword, res: Response): Promise<Response> {
+  try {
+    const { user_uid } = req.params;
+    const inputData    = req.body;
+
+    const schema = Joi.object({
+      password: Joi.string().min(6).max(200).required().messages({
+        'string.empty': `Password cannot be an empty field`,
+        'string.min'  : `Password should have a minimum length of 6`,
+        'any.required': `Password is a required field`
+      }),
+      repassword: Joi.string().min(6).max(200).required().messages({
+        'string.empty': `RePassword cannot be an empty field`,
+        'string.min'  : `RePassword should have a minimum length of 6`,
+        'any.required': `RePassword is a required field`
+      }),
+      current_user_uid: Joi.string().min(36).max(36),
+    });
+
+    const { error } = schema.validate(req.body);
+
+    if (error) {
+      const exception = new InvalidInputException(error.message);
+      return res.status(400).send(exception.getResponse);
+    }
+
+    if(inputData.password != inputData.repassword) {
+      const exception = new InvalidInputException("Confirm password is not the same as password");
+      return res.status(400).send(exception.getResponse);
+    }
+
+    const editUser     = {
+      password        : inputData.password.trim(),
+      current_user_uid: inputData.current_user_uid.trim(),
+    }
+    
+    const currentUser = await prisma.users.findFirst({
+      where: {
+        AND: [
+          {uid: editUser.current_user_uid,},
+          {deleted_at: null,},
+        ]
+      },
+    })
+
+    const salt            = await bcryptjs.genSalt(10);
+    const encryptPassword = await bcryptjs.hash(editUser.password, salt);
+
+    try {
+      const updateUser = await prisma.users.update({
+        where: {
+          uid: user_uid
+        },
+        data: {
+          password  : encryptPassword,
+          updated_at: moment().tz('Asia/Jakarta').format().toString(),
+          updatedby : {
+            connect : {
+              id: currentUser?.id
+            }
+          },
+        },
+        select: {
+          uid              : true,
+          username         : true,
+          name             : true,
+          sex              : true,
+          email            : true,
+          email_verified_at: true,
+          role             : {
+            select: {
+              uid         : true,
+              name        : true,
+              display_name: true,
+            }
+          },
+          created_at       : true,
+          updated_at       : true,
+          deleted_at       : true,
+          createdby        : {
+            select: {
+              name: true
+            }
+          },
+          updatedby: {
+            select: {
+              name: true
+            }
+          },
+          deletedby: {
+            select: {
+              name: true
+            }
+          },
+        }
+      });
+
+      const responseData = new SuccessException("Password reset successfully", updateUser)
+
+      return res.send(responseData.getResponse)
+
+    } catch (err: any) {
+      let message: string = "";
+      if (err instanceof Prisma.PrismaClientKnownRequestError){
+        if (err.code === 'P2002') {
+          console.log("There is a unique constraint violation, a new user cannot be created with this email")
+          message = "There is a unique constraint violation, a new user cannot be created with this email"
+        }
+        else{
+          // throw e;
+          message = err.message;
+        }
+      }
+      // let errorMessage = message == null ? e.message : message;
+      console.log(err.message);
+      let exception= new BasicErrorException(message);
+      return res.status(400).send(exception.getResponse)
+    }
+
+  } catch (e: any) {
+    console.log("oke",e.message);
+    let exception= new BasicErrorException(e.message);
+    return res.status(400).send(exception.getResponse)
+  }
+}
+
+
 export async function deleteUser(req: RequestDeleteUser, res: Response): Promise<Response> {
   try {
     
@@ -668,8 +808,8 @@ export async function deleteUser(req: RequestDeleteUser, res: Response): Promise
           uid: user_uid
         },
         data: {
-          updated_at: moment().format().toString(),
-          deleted_at: moment().format().toString(),
+          updated_at: moment().tz('Asia/Jakarta').format().toString(),
+          deleted_at: moment().tz('Asia/Jakarta').format().toString(),
           updatedby: {
             connect: {
               id: currentUser?.id

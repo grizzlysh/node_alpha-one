@@ -1,8 +1,8 @@
-import RoleDataDetail from "../../entity/roleDataDetail.entity";
+import Role from "../../entity/role.entity";
 
 
 interface ResponseGetRoleByID {
-  data: RoleDataDetail
+  data: Role
 }
 
 export default ResponseGetRoleByID;

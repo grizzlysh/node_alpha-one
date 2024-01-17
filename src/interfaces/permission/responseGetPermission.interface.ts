@@ -1,7 +1,7 @@
-import PermissionData from "../../entity/permissionData.entity";
+import Permission from "../../entity/permission.entity";
 
 interface ResponseGetPermission {
-  data        : PermissionData[],
+  data        : Permission[],
   total_data  : number,
   total_pages : number,
   current_page: number

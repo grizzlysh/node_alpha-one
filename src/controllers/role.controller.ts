@@ -1,4 +1,4 @@
-import moment from 'moment';
+import moment from 'moment-timezone';
 import Joi, { not } from 'joi';
 import jwt from 'jsonwebtoken';
 import bcryptjs from 'bcryptjs';
@@ -9,7 +9,7 @@ import { getPagination, getPagingData } from '../utils/pagination.util';
 import SuccessException from '../exceptions/200_success.exception';
 import BasicErrorException from '../exceptions/700_basicError.exception';
 import InvalidInputException from '../exceptions/701_invalidInput.exception';
-import PermissionNotFoundException from '../exceptions/709_permissionNotFound.exception ';
+import PermissionNotFoundException from '../exceptions/709_permissionNotFound.exception';
 import PermissionAlreadyExistException from '../exceptions/708_permissionAlreadyExist.exception';
 
 import RequestGetPermission from '../interfaces/permission/requestGetPermission.interface';
@@ -43,13 +43,8 @@ export async function createRole(req: RequestCreateRole, res: Response): Promise
         'string.min': `Display Name should have a minimum length of 4`,
         'any.required': `Display Name is a required field`
       }),
-      description     : Joi.string().max(100).messages({
-        // 'string.base': `"a" should be a type of 'text'`,
-        'string.empty': `Description cannot be an empty field`,
-        // 'string.min': `Description should have a minimum length of 6`,
-        'any.required': `Description is a required field`
-      }),
-      permission     : Joi.string().required().messages({
+      description: Joi.string().max(191).allow('').optional(),
+      permissions: Joi.string().required().messages({
         // 'string.base': `"a" should be a type of 'text'`,
         'string.empty': `Permission cannot be an empty field`,
         // 'string.min': `Sex should have a minimum length of 6`,
@@ -66,12 +61,19 @@ export async function createRole(req: RequestCreateRole, res: Response): Promise
     }
 
     const inputData        = req.body;
-    const display_name     = inputData.display_name.trim();
+    const display_name     = inputData.display_name.trim().toLowerCase();
     const description      = inputData.description.trim();
-    const permissionJSON   = inputData.permission
+    const permissionJSON   = inputData.permissions
     const current_user_uid = inputData.current_user_uid.trim();
     let   nameFormat       = display_name.replace(/\s+/g, '-');
-    let   permission       = JSON.parse(permissionJSON);
+    let   permissions: {
+      permission_uid : string,
+      permission_name: string,
+      read_permit    : boolean,
+      write_permit   : boolean,
+      modify_permit  : boolean,
+      delete_permit  : boolean,
+    }[]       = JSON.parse(permissionJSON);
 
     const checkRole = await prisma.roles.findFirst({
       where: {
@@ -108,15 +110,16 @@ export async function createRole(req: RequestCreateRole, res: Response): Promise
       
       
 
-      const permissionList = permission.map(
-        (  id: { read: boolean; write: boolean; modify: boolean; permission_uid: string }) => (
+      const permissionList = permissions.map(
+        (permission) => (
           { 
-            read_permit  : id.read,
-            write_permit : id.write,
-            modify_permit: id.modify,
+            read_permit  : permission.read_permit,
+            write_permit : permission.write_permit,
+            modify_permit: permission.modify_permit,
+            delete_permit: permission.delete_permit,
             permissions: {
               connect: {
-                uid: id.permission_uid
+                uid: permission.permission_uid
               }
             }
 
@@ -149,8 +152,8 @@ export async function createRole(req: RequestCreateRole, res: Response): Promise
               // ...(permissionList ? permissionList : {})
             // ]
           },
-          created_at  : moment().format().toString(),
-          updated_at  : moment().format().toString(),
+          created_at  : moment().tz('Asia/Jakarta').format().toString(),
+          updated_at  : moment().tz('Asia/Jakarta').format().toString(),
           createdby   : {
             connect: {
               id: currentUser?.id
@@ -185,6 +188,8 @@ export async function getRole(req: RequestGetRole, res: Response): Promise<Respo
     console.log("getall")
     const { page, size, cond, sort, field } = req.query;
     const condition                         = cond ? cond : undefined;
+    const sortBy                            = sort ? sort : 'asc';
+    const fieldBy                           = field ? field : 'id';
     const { limit, offset }                 = getPagination(page, size);
 
     const query: Prisma.rolesFindManyArgs = {
@@ -193,11 +198,14 @@ export async function getRole(req: RequestGetRole, res: Response): Promise<Respo
       where: {
         AND:[
           {deleted_at: null,},
-          {...( condition ? { name: {contains: condition?.toString()} } : {} )}
+          {name: {
+            contains: condition
+          }}
+          // {...( condition ? { name: {contains: condition?.toString()} } : {} )}
         ]
       },
       orderBy: {
-        [field]: sort,
+        [fieldBy]: sortBy,
       },
       select: {
         uid         : true,
@@ -222,6 +230,21 @@ export async function getRole(req: RequestGetRole, res: Response): Promise<Respo
             name: true
           }
         },
+        permission_role: {
+          select: {
+            permissions: {
+              select: {
+                uid: true,
+                name: true,
+                display_name: true,
+              }
+            },
+            delete_permit: true,
+            read_permit  : true,
+            write_permit : true,
+            modify_permit: true,
+          }
+        }
       }
     }
 
@@ -292,7 +315,11 @@ export async function getRoleById(req: RequestGetRoleByID, res: Response): Promi
                 name: true,
                 display_name: true,
               }
-            }
+            },
+            delete_permit: true,
+            read_permit  : true,
+            write_permit : true,
+            modify_permit: true,
           }
         }
       }
@@ -330,13 +357,8 @@ export async function editRole(req: RequestEditRole, res: Response): Promise<Res
         'string.min': `Display Name should have a minimum length of 4`,
         'any.required': `Display Name is a required field`
       }),
-      description     : Joi.string().max(100).messages({
-        // 'string.base': `"a" should be a type of 'text'`,
-        'string.empty': `Description cannot be an empty field`,
-        // 'string.min': `Description should have a minimum length of 6`,
-        'any.required': `Description is a required field`
-      }),
-      permission     : Joi.string().required().messages({
+      description: Joi.string().max(191).allow('').optional(),
+      permissions     : Joi.string().required().messages({
         // 'string.base': `"a" should be a type of 'text'`,
         'string.empty': `Permission cannot be an empty field`,
         // 'string.min': `Sex should have a minimum length of 6`,
@@ -353,9 +375,9 @@ export async function editRole(req: RequestEditRole, res: Response): Promise<Res
     }
     
     const editRole     = {
-      display_name    : inputData.display_name.trim(),
+      display_name    : inputData.display_name.trim().toLowerCase(),
       description     : inputData.description.trim(),
-      permissionJSON  : inputData.permission,
+      permissionJSON  : inputData.permissions,
       current_user_uid: inputData.current_user_uid.trim(),
     }
     let nameFormat = editRole.display_name.replace(/\s+/g, '-');
@@ -404,17 +426,26 @@ export async function editRole(req: RequestEditRole, res: Response): Promise<Res
 
     try {
 
-      let permission = JSON.parse(editRole.permissionJSON);
-      console.log(permission);
-      const permissionList = permission.map(
-        (  id: { read: boolean; write: boolean; modify: boolean; permission_uid: string }) => (
+      // let permission = JSON.parse(editRole.permissionJSON);
+      let permissions: {
+        permission_uid : string,
+        permission_name: string,
+        read_permit    : boolean,
+        write_permit   : boolean,
+        modify_permit  : boolean,
+        delete_permit  : boolean,
+      }[]       = JSON.parse(editRole.permissionJSON);
+      console.log(permissions);
+      const permissionList = permissions.map(
+        ( permission ) => (
           { 
-            read_permit  : id.read,
-            write_permit : id.write,
-            modify_permit: id.modify,
+            read_permit  : permission.read_permit,
+            write_permit : permission.write_permit,
+            modify_permit: permission.modify_permit,
+            delete_permit: permission.delete_permit,
             permissions: {
               connect: {
-                uid: id.permission_uid
+                uid: permission.permission_uid
               }
             }
 
@@ -430,7 +461,7 @@ export async function editRole(req: RequestEditRole, res: Response): Promise<Res
           name             : nameFormat,
           display_name     : editRole.display_name,
           description      : editRole.description,
-          updated_at       : moment().format().toString(),
+          updated_at       : moment().tz('Asia/Jakarta').format().toString(),
           updatedby        : {
             connect : {
               id: currentUser?.id
@@ -520,8 +551,8 @@ export async function deleteRole(req: RequestDeleteRole, res: Response): Promise
           uid: role_uid
         },
         data: {
-          updated_at: moment().format().toString(),
-          deleted_at: moment().format().toString(),
+          updated_at: moment().tz('Asia/Jakarta').format().toString(),
+          deleted_at: moment().tz('Asia/Jakarta').format().toString(),
           updatedby: {
             connect: {
               id: currentUser?.id

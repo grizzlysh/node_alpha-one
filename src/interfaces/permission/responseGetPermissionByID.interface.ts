@@ -1,8 +1,8 @@
-import PermissionData from "../../entity/permissionData.entity";
+import Permission from "../../entity/permission.entity";
 
 
 interface ResponseGetPermissionByID {
-  data: PermissionData
+  data: Permission
 }
 
 export default ResponseGetPermissionByID;

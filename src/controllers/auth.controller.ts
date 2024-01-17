@@ -4,7 +4,7 @@ import bcryptjs from 'bcryptjs';
 import { Request, Response, response } from "express";
 import { PrismaClient, Prisma } from '@prisma/client';
 import { config as dotenv } from 'dotenv';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import UserOnline from '../entity/userOnline.entity';
 import SuccessException from '../exceptions/200_success.exception';
@@ -67,10 +67,27 @@ export async function loginHandler(req: RequestLogin, res: Response): Promise<Re
         password         : true,
         email            : true,
         email_verified_at: true,
+        created_at       : true,
         role             : {
           select : {
-            uid : true,
-            name: true,
+            uid            : true,
+            name           : true,
+            display_name   : true,
+            permission_role: {
+              select: {
+                permissions: {
+                  select: {
+                    uid         : true,
+                    name        : true,
+                    display_name: true,
+                  }
+                },
+                delete_permit: true,
+                read_permit  : true,
+                write_permit : true,
+                modify_permit: true,
+              }
+            }
           }
         }
       }
@@ -88,15 +105,32 @@ export async function loginHandler(req: RequestLogin, res: Response): Promise<Re
       return res.status(400).send(exception.getResponse)
     }
   
+    const usePermissionRoles = checkUser.role.permission_role.map((val) => (
+      {
+        permissions: {
+          uid         : val.permissions.uid,
+          name        : val.permissions.name,
+          display_name: val.permissions.display_name,
+        },
+        delete_permit: val.delete_permit,
+        read_permit  : val.read_permit,
+        write_permit : val.write_permit,
+        modify_permit: val.modify_permit,
+      }
+    ))
+
     let userOnline: UserOnline = {
-      uid     : checkUser.uid,
-      username: checkUser.username,
-      name    : checkUser.name,
-      sex     : checkUser.sex,
-      email   : checkUser.email,
-      role    : {
-        uid : checkUser.role.uid,
-        name: checkUser.role.name,
+      uid       : checkUser.uid,
+      username  : checkUser.username,
+      name      : checkUser.name,
+      sex       : checkUser.sex,
+      email     : checkUser.email,
+      created_at: checkUser.created_at?.toString() || '',
+      role      : {
+        uid            : checkUser.role.uid,
+        name           : checkUser.role.name,
+        display_name   : checkUser.role.display_name,
+        permission_role: usePermissionRoles,
       },
     }
     
@@ -145,17 +179,28 @@ export async function refreshTokenHandler(req: Request, res: Response): Promise<
     try {
       const payload: any = jwt.verify(refreshToken, jwtRefreshKey)
     
+      // let userOnline: UserOnline = {
+      //   uid     : payload.uid,
+      //   username: payload.username,
+      //   name    : payload.name,
+      //   sex     : payload.sex,
+      //   email   : payload.email,
+      //   role : {
+      //     uid : payload.role.uid,
+      //     name: payload.role.name,
+      //   }
+      // }
+  
       let userOnline: UserOnline = {
-        uid     : payload.uid,
-        username: payload.username,
-        name    : payload.name,
-        sex     : payload.sex,
-        email   : payload.email,
-        role : {
-          uid : payload.role.uid,
-          name: payload.role.name,
-        }
-      }
+        uid       : payload.uid,
+        username  : payload.username,
+        name      : payload.name,
+        sex       : payload.sex,
+        email     : payload.email,
+        created_at: payload.created_at,
+        role      : payload.role,
+      };
+
 
       const newAccessToken = jwt.sign(userOnline, jwtSecretKey, { expiresIn: '1m' });
       
@@ -190,19 +235,19 @@ export async function registerHandler(req: RequestRegister, res: Response): Prom
         'string.min': `Username should have a minimum length of 6`,
         'any.required': `Username is a required field`
       }),
-      name    : Joi.string().min(1).max(30).required().messages({
+      name: Joi.string().min(1).max(30).required().messages({
         // 'string.base': `"a" should be a type of 'text'`,
         'string.empty': `Name cannot be an empty field`,
         'string.min': `Name should have a minimum length of 1`,
         'any.required': `Name is a required field`
       }),
-      sex     : Joi.string().min(1).max(1).required().messages({
+      sex: Joi.string().min(1).max(1).required().messages({
         // 'string.base': `"a" should be a type of 'text'`,
         'string.empty': `Sex cannot be an empty field`,
         'string.min': `Sex should have a minimum length of 1`,
         'any.required': `Sex is a required field`
       }),
-      email   : Joi.string().min(3).max(200).required().email().messages({
+      email: Joi.string().min(3).max(200).required().email().messages({
         // 'string.base': `"a" should be a type of 'text'`,
         'string.empty': `Email cannot be an empty field`,
         // 'string.min': `Email should have a minimum length of 6`,
@@ -257,8 +302,8 @@ export async function registerHandler(req: RequestRegister, res: Response): Prom
           sex       : sex,
           email     : email,
           password  : encryptPassword,
-          created_at: moment().format().toString(),
-          updated_at: moment().format().toString(),
+          created_at: moment().tz('Asia/Jakarta').format().toString(),
+          updated_at: moment().tz('Asia/Jakarta').format().toString(),
           createdby: {
             connect: {
               id: 1
@@ -283,26 +328,60 @@ export async function registerHandler(req: RequestRegister, res: Response): Prom
           password         : true,
           email            : true,
           email_verified_at: true,
-          role             : {
-            select : {
-              uid : true,
-              name: true,
+          created_at       : true,
+        role             : {
+          select : {
+            uid            : true,
+            name           : true,
+            display_name   : true,
+            permission_role: {
+              select: {
+                permissions: {
+                  select: {
+                    uid         : true,
+                    name        : true,
+                    display_name: true,
+                  }
+                },
+                delete_permit: true,
+                read_permit  : true,
+                write_permit : true,
+                modify_permit: true,
+              }
             }
           }
         }
+        }
       });
       
-      let userOnline: UserOnline = {
-        uid     : user.uid,
-        username: user.username,
-        name    : user.name,
-        sex     : user.sex,
-        email   : user.email,
-        role : {
-          uid : user.role.uid,
-          name: user.role.name,
-        }
+      const usePermissionRoles = user.role.permission_role.map((val) => (
+      {
+        permissions: {
+          uid         : val.permissions.uid,
+          name        : val.permissions.name,
+          display_name: val.permissions.display_name,
+        },
+        delete_permit: val.delete_permit,
+        read_permit  : val.read_permit,
+        write_permit : val.write_permit,
+        modify_permit: val.modify_permit,
       }
+    ))
+
+    let userOnline: UserOnline = {
+      uid       : user.uid,
+      username  : user.username,
+      name      : user.name,
+      sex       : user.sex,
+      email     : user.email,
+      created_at: user.created_at?.toString() || '',
+      role      : {
+        uid            : user.role.uid,
+        name           : user.role.name,
+        display_name   : user.role.display_name,
+        permission_role: usePermissionRoles,
+      },
+    }
 
       const registerData: ResponseRegister = {
         user: userOnline,

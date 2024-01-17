@@ -1,7 +1,7 @@
-import UserData from "../../entity/userData.entity";
+import User from "../../entity/user.entity";
 
 interface ResponseGetUser {
-  data        : UserData[],
+  data        : User[],
   total_data  : number,
   total_pages : number,
   current_page: number

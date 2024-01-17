@@ -17,6 +17,6 @@ PermissionRoutes.get('/:permission_uid', checkJwt, getPermissionById);
 PermissionRoutes.put('/:permission_uid', checkJwt, editPermission);
 
 // delete permission by id
-PermissionRoutes.delete('/:permission_uid', checkJwt, deletePermission);
+PermissionRoutes.patch('/:permission_uid', checkJwt, deletePermission);
 
 export default PermissionRoutes;

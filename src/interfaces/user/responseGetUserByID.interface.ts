@@ -1,7 +1,7 @@
-import UserData from "../../entity/userData.entity";
+import User from "../../entity/user.entity";
 
 interface ResponseGetUserByID {
-  data: UserData
+  data: User
 }
 
 export default ResponseGetUserByID;

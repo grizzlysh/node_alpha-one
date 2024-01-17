@@ -1,18 +1,20 @@
 
 export default interface User{
-    id?               : number,
-    uid?              : string,
-    nik               : string,
-    name              : string,
-    sex               : string,
-    email             : string,
-    email_verified_at?: string,
-    password          : string,
-    created_at?       : string,
-    updated_at?       : string,
-    deleted_at?       : string,
-    created_by?       : number,
-    updated_by?       : number,
-    deleted_by?       : number
-    // role?             : IRole[]
-}
+    uid              : string,
+    username         : string,
+    name             : string,
+    sex              : string,
+    email            : string,
+    email_verified_at: Date | null,
+    created_at       : Date | null,
+    updated_at       : Date | null,
+    deleted_at       : Date | null,
+    createdby        : { name: string, } | null,
+    updatedby        : { name: string, } | null,
+    deletedby        : { name: string, } | null,
+    role             : {
+      uid         : string,
+      name        : string,
+      display_name: string,
+    },
+  }

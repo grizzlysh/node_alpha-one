@@ -1,10 +1,10 @@
-import RoleData from "../../entity/roleData.entity";
+import Role from "../../entity/role.entity";
 
 interface ResponseGetRole {
-  data        : RoleData[]
+  data        : Role[]
   total_data  : number,
   total_pages : number,
-  current_page: number
+  current_page: number,
 }
 
 export default ResponseGetRole;
