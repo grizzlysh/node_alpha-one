@@ -7,7 +7,7 @@ class ShapeNotFoundException implements HttpException {
 
   constructor(inputMessage?: string) {
     this.status  = 711;
-    this.message = inputMessage ? inputMessage : "Shape Not Found";
+    this.message = inputMessage ? inputMessage : "Shape not found";
   }
 
   get getResponse() {

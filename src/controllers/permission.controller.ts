@@ -47,30 +47,32 @@ export async function createPermission(req: RequestCreatePermission, res: Respon
       return res.status(400).send(exception.getResponse);
     }
 
-    const inputData        = req.body;
-    const display_name     = inputData.display_name.trim().toLowerCase();
-    const description      = inputData.description.trim();
-    const current_user_uid = inputData.current_user_uid.trim();
-    let   nameFormat       = display_name.replace(/\s+/g, '-');
+    const inputData = {
+      display_name    : req.body.display_name.trim().toLowerCase(),
+      description     : req.body.description.trim(),
+      current_user_uid: req.body.current_user_uid,
+    } 
+    
+    let nameFormat       = inputData.display_name.replace(/\s+/g, '-');
 
     const checkPermission = await prisma.permissions.findFirst({
       where: {
         AND: [
-          {display_name: display_name,},
+          {display_name: inputData.display_name,},
           {deleted_at: null,},
         ]
       },
     })
 
     if (checkPermission) {
-      const exception = new PermissionAlreadyExistException("Permission Name Already Exist");
+      const exception = new PermissionAlreadyExistException("Permission name already exist");
       return res.status(400).send(exception.getResponse);
     }
 
     const currentUser = await prisma.users.findFirst({
       where: {
         AND: [
-          {uid: current_user_uid,},
+          {uid: inputData.current_user_uid,},
           {deleted_at: null,},
         ]
       },
@@ -80,8 +82,8 @@ export async function createPermission(req: RequestCreatePermission, res: Respon
       let permission = await prisma.permissions.create({
         data: {
           name        : nameFormat,
-          display_name: display_name,
-          description : description,
+          display_name: inputData.display_name,
+          description : inputData.description,
           created_at  : moment().tz('Asia/Jakarta').format().toString(),
           updated_at  : moment().tz('Asia/Jakarta').format().toString(),
           createdby   : {
@@ -175,7 +177,7 @@ export async function getPermission(req: RequestGetPermission, res: Response): P
       total_pages : permissionData.totalPages
     }
     
-    const responseData = new SuccessException("Permission Data received", getPermissionData)
+    const responseData = new SuccessException("Permission data received", getPermissionData)
 
     return res.send(responseData.getResponse)
 
@@ -232,7 +234,7 @@ export async function getPermissionById(req: RequestGetPermissionByID, res: Resp
       data: permission
     }
     
-    const responseData = new SuccessException("Permission Data received", getPermissionData)
+    const responseData = new SuccessException("Permission data received", getPermissionData)
 
     return res.send(responseData.getResponse)
 
@@ -246,7 +248,6 @@ export async function editPermission(req: RequestEditPermission, res: Response):
   try {
 
     const { permission_uid } = req.params;
-    const inputData          = req.body;
 
     const schema = Joi.object({
       display_name    : Joi.string().min(4).max(30).required().messages({
@@ -268,12 +269,12 @@ export async function editPermission(req: RequestEditPermission, res: Response):
       return res.status(400).send(exception.getResponse);
     }
     
-    const editPermission     = {
-      display_name    : inputData.display_name.trim().toLowerCase(),
-      description     : inputData.description.trim(),
-      current_user_uid: inputData.current_user_uid.trim(),
+    const editData = {
+      display_name    : req.body.display_name.trim().toLowerCase(),
+      description     : req.body.description.trim(),
+      current_user_uid: req.body.current_user_uid,
     }
-    let nameFormat = editPermission.display_name.replace(/\s+/g, '-');
+    let nameFormat = editData.display_name.replace(/\s+/g, '-');
     
     const checkPermission = await prisma.permissions.findFirst({
       where: {
@@ -290,18 +291,18 @@ export async function editPermission(req: RequestEditPermission, res: Response):
       }
     })
 
-    if(checkPermission?.display_name != editPermission.display_name) {
+    if(checkPermission?.display_name != editData.display_name) {
       const checkDisplayName = await prisma.permissions.findFirst({
         where: {
           AND: [
-            {display_name: editPermission.display_name,},
+            {display_name: editData.display_name,},
             {deleted_at: null,},
           ]
         },
       })
 
       if (checkDisplayName) {
-        const exception = new PermissionAlreadyExistException("Display Name Already Exist");
+        const exception = new PermissionAlreadyExistException("Permission name already exist");
         return res.status(400).send(exception.getResponse);
       }
     }
@@ -309,7 +310,7 @@ export async function editPermission(req: RequestEditPermission, res: Response):
     const currentUser = await prisma.users.findFirst({
       where: {
         AND: [
-          {uid: editPermission.current_user_uid,},
+          {uid: editData.current_user_uid,},
           {deleted_at: null,},
         ]
       },
@@ -322,8 +323,8 @@ export async function editPermission(req: RequestEditPermission, res: Response):
         },
         data: {
           name             : nameFormat,
-          display_name     : editPermission.display_name,
-          description      : editPermission.description,
+          display_name     : editData.display_name,
+          description      : editData.description,
           updated_at       : moment().tz('Asia/Jakarta').format().toString(),
           updatedby        : {
             connect : {
@@ -376,8 +377,7 @@ export async function deletePermission(req: RequestDeletePermission, res: Respon
   try {
     
     const { permission_uid } = req.params;
-    const inputData          = req.body;
-    const current_user_uid   = inputData.current_user_uid.trim()
+    const deleteData         = req.body;
     
     const checkPermission = await prisma.permissions.findFirst({
       where: {
@@ -396,7 +396,7 @@ export async function deletePermission(req: RequestDeletePermission, res: Respon
     const currentUser = await prisma.users.findFirst({
       where: {
         AND: [
-          {uid: current_user_uid,},
+          {uid: deleteData.current_user_uid,},
           {deleted_at: null,},
         ]
       },

@@ -9,8 +9,8 @@ import { getPagination, getPagingData } from '../utils/pagination.util';
 import SuccessException from '../exceptions/200_success.exception';
 import BasicErrorException from '../exceptions/700_basicError.exception';
 import InvalidInputException from '../exceptions/701_invalidInput.exception';
-import CategoryNotFoundException from '../exceptions/715_categoryNotFound.exception';
-import CategoryAlreadyExistException from '../exceptions/714_categoryAlreadyExist.exception';
+import CategoryNotFoundException from '../exceptions/713_categoryNotFound.exception';
+import CategoryAlreadyExistException from '../exceptions/712_categoryAlreadyExist.exception';
 
 import RequestGetCategory from '../interfaces/category/requestGetCategory.interface';
 import ResponseGetCategory from '../interfaces/category/responseGetCategory.interface';
@@ -46,28 +46,29 @@ export async function createCategory(req: RequestCreateCategory, res: Response):
       return res.status(400).send(exception.getResponse);
     }
 
-    const inputData        = req.body;
-    const name             = inputData.name.trim().toLowerCase();
-    const current_user_uid = inputData.current_user_uid.trim();
+    const inputData = {
+      name            : req.body.name.trim().toLowerCase(),
+      current_user_uid: req.body.current_user_uid,
+    }
 
     const checkCategory = await prisma.categories.findFirst({
       where: {
         AND: [
-          {name: name,},
+          {name: inputData.name,},
           {deleted_at: null,},
         ]
       },
     })
 
     if (checkCategory) {
-      const exception = new CategoryAlreadyExistException("Category Name Already Exist");
+      const exception = new CategoryAlreadyExistException("Category name already exist");
       return res.status(400).send(exception.getResponse);
     }
 
     const currentUser = await prisma.users.findFirst({
       where: {
         AND: [
-          {uid: current_user_uid,},
+          {uid: inputData.current_user_uid,},
           {deleted_at: null,},
         ]
       },
@@ -76,7 +77,7 @@ export async function createCategory(req: RequestCreateCategory, res: Response):
     try {
       let category = await prisma.categories.create({
         data: {
-          name        : name,
+          name        : inputData.name,
           created_at  : moment().tz('Asia/Jakarta').format().toString(),
           updated_at  : moment().tz('Asia/Jakarta').format().toString(),
           createdby   : {
@@ -167,7 +168,7 @@ export async function getCategory(req: RequestGetCategory, res: Response): Promi
       total_pages : categoryData.totalPages
     }
     
-    const responseData = new SuccessException("Category Data received", getCategoryData)
+    const responseData = new SuccessException("Category data received", getCategoryData)
 
     return res.send(responseData.getResponse)
 
@@ -222,7 +223,7 @@ export async function getCategoryById(req: RequestGetCategoryByID, res: Response
       data: category
     }
     
-    const responseData = new SuccessException("Category Data received", getCategoryData)
+    const responseData = new SuccessException("Category data received", getCategoryData)
 
     return res.send(responseData.getResponse)
 
@@ -236,7 +237,6 @@ export async function editCategory(req: RequestEditCategory, res: Response): Pro
   try {
 
     const { category_uid } = req.params;
-    const inputData        = req.body;
 
     const schema = Joi.object({
       name: Joi.string().min(1).max(60).required().messages({
@@ -257,9 +257,9 @@ export async function editCategory(req: RequestEditCategory, res: Response): Pro
       return res.status(400).send(exception.getResponse);
     }
     
-    const editCategory     = {
-      name            : inputData.name.trim().toLowerCase(),
-      current_user_uid: inputData.current_user_uid.trim(),
+    const editData = {
+      name            : req.body.name.trim().toLowerCase(),
+      current_user_uid: req.body.current_user_uid,
     }
     
     const checkCategory = await prisma.categories.findFirst({
@@ -275,18 +275,18 @@ export async function editCategory(req: RequestEditCategory, res: Response): Pro
       }
     })
 
-    if(checkCategory?.name != editCategory.name) {
+    if(checkCategory?.name != editData.name) {
       const checkName = await prisma.categories.findFirst({
         where: {
           AND: [
-            {name: editCategory.name,},
+            {name: editData.name,},
             {deleted_at: null,},
           ]
         },
       })
 
       if (checkName) {
-        const exception = new CategoryAlreadyExistException("Name Already Exist");
+        const exception = new CategoryAlreadyExistException("Category name already exist");
         return res.status(400).send(exception.getResponse);
       }
     }
@@ -294,7 +294,7 @@ export async function editCategory(req: RequestEditCategory, res: Response): Pro
     const currentUser = await prisma.users.findFirst({
       where: {
         AND: [
-          {uid: editCategory.current_user_uid,},
+          {uid: editData.current_user_uid,},
           {deleted_at: null,},
         ]
       },
@@ -306,7 +306,7 @@ export async function editCategory(req: RequestEditCategory, res: Response): Pro
           uid: category_uid
         },
         data: {
-          name             : editCategory.name,
+          name             : editData.name,
           updated_at       : moment().tz('Asia/Jakarta').format().toString(),
           updatedby        : {
             connect : {
@@ -357,8 +357,7 @@ export async function deleteCategory(req: RequestDeleteCategory, res: Response):
   try {
     
     const { category_uid } = req.params;
-    const inputData        = req.body;
-    const current_user_uid = inputData.current_user_uid.trim()
+    const deleteData       = req.body;
     
     const checkCategory = await prisma.categories.findFirst({
       where: {
@@ -377,7 +376,7 @@ export async function deleteCategory(req: RequestDeleteCategory, res: Response):
     const currentUser = await prisma.users.findFirst({
       where: {
         AND: [
-          {uid: current_user_uid,},
+          {uid: deleteData.current_user_uid,},
           {deleted_at: null,},
         ]
       },

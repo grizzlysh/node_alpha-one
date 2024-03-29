@@ -7,7 +7,7 @@ class RoleAlreadyExistException implements HttpException {
 
   constructor(inputMessage?: string) {
     this.status  = 706;
-    this.message = inputMessage ? inputMessage : "Role Already Exist";
+    this.message = inputMessage ? inputMessage : "Role already exist";
   }
 
   get getResponse() {

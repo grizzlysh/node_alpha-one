@@ -9,16 +9,7 @@ import { getPagination, getPagingData } from '../utils/pagination.util';
 import SuccessException from '../exceptions/200_success.exception';
 import BasicErrorException from '../exceptions/700_basicError.exception';
 import InvalidInputException from '../exceptions/701_invalidInput.exception';
-import PermissionNotFoundException from '../exceptions/709_permissionNotFound.exception';
-import PermissionAlreadyExistException from '../exceptions/708_permissionAlreadyExist.exception';
 
-import RequestGetPermission from '../interfaces/permission/requestGetPermission.interface';
-import ResponseGetPermission from '../interfaces/permission/responseGetPermission.interface';
-import RequestEditPermission from '../interfaces/permission/requestEditPermission.interface';
-import RequestDeletePermission from '../interfaces/permission/requestDeletePermission.interface';
-import RequestCreatePermission from '../interfaces/permission/requestCreatePermission.interface';
-import RequestGetPermissionByID from '../interfaces/permission/requestGetPermissionByID.interface';
-import ResponseGetPermissionByID from '../interfaces/permission/responseGetPermissionByID.interface';
 import RoleAlreadyExistException from '../exceptions/706_roleAlreadyExist.exception';
 import RequestCreateRole from '../interfaces/role/requestCreateRole.interface';
 import RequestGetRole from '../interfaces/role/requestGetRole.interface';
@@ -60,39 +51,33 @@ export async function createRole(req: RequestCreateRole, res: Response): Promise
       return res.status(400).send(exception.getResponse);
     }
 
-    const inputData        = req.body;
-    const display_name     = inputData.display_name.trim().toLowerCase();
-    const description      = inputData.description.trim();
-    const permissionJSON   = inputData.permissions
-    const current_user_uid = inputData.current_user_uid.trim();
-    let   nameFormat       = display_name.replace(/\s+/g, '-');
-    let   permissions: {
-      permission_uid : string,
-      permission_name: string,
-      read_permit    : boolean,
-      write_permit   : boolean,
-      modify_permit  : boolean,
-      delete_permit  : boolean,
-    }[]       = JSON.parse(permissionJSON);
+    const inputData = {
+      display_name    : req.body.display_name.trim().toLowerCase(),
+      description     : req.body.description.trim(),
+      permissions_json: req.body.permissions,
+      current_user_uid: req.body.current_user_uid,
+    }
+
+    let   nameFormat = inputData.display_name.replace(/\s+/g, '-');
 
     const checkRole = await prisma.roles.findFirst({
       where: {
         AND: [
-          {display_name: display_name,},
+          {display_name: inputData.display_name,},
           {deleted_at: null,},
         ]
       },
     })
 
     if (checkRole) {
-      const exception = new RoleAlreadyExistException("Role Name Already Exist");
+      const exception = new RoleAlreadyExistException("Role name already exist");
       return res.status(400).send(exception.getResponse);
     }
 
     const currentUser = await prisma.users.findFirst({
       where: {
         AND: [
-          {uid: current_user_uid,},
+          {uid: inputData.current_user_uid,},
           {deleted_at: null,},
         ]
       },
@@ -107,10 +92,16 @@ export async function createRole(req: RequestCreateRole, res: Response): Promise
       //   permission_uid: "de58ff1d-7aa7-4810-b1a6-97a6fab6f302"
       // }];
       // console.log(JSON.stringify(arr));
-      
-      
+      let inputPermissions: {
+        permission_uid : string,
+        permission_name: string,
+        read_permit    : boolean,
+        write_permit   : boolean,
+        modify_permit  : boolean,
+        delete_permit  : boolean,
+      }[] = JSON.parse(inputData.permissions_json);
 
-      const permissionList = permissions.map(
+      const permissionList = inputPermissions.map(
         (permission) => (
           { 
             read_permit  : permission.read_permit,
@@ -145,8 +136,8 @@ export async function createRole(req: RequestCreateRole, res: Response): Promise
       let role = await prisma.roles.create({
         data: {
           name        : nameFormat,
-          display_name: display_name,
-          description : description,
+          display_name: inputData.display_name,
+          description : inputData.description,
           permission_role: {
             create : permissionList
               // ...(permissionList ? permissionList : {})
@@ -185,7 +176,6 @@ export async function createRole(req: RequestCreateRole, res: Response): Promise
 
 export async function getRole(req: RequestGetRole, res: Response): Promise<Response> {
   try {
-    console.log("getall")
     const { page, size, cond, sort, field } = req.query;
     const condition                         = cond ? cond : undefined;
     const sortBy                            = sort ? sort : 'asc';
@@ -261,7 +251,7 @@ export async function getRole(req: RequestGetRole, res: Response): Promise<Respo
       total_pages : roleData.totalPages
     }
 
-    const responseData = new SuccessException("Role Data received", getRoleData)
+    const responseData = new SuccessException("Role data received", getRoleData)
 
     return res.send(responseData.getResponse)
 
@@ -334,7 +324,7 @@ export async function getRoleById(req: RequestGetRoleByID, res: Response): Promi
       data: role
     }
     
-    const responseData = new SuccessException("Role Data received", getRoleData)
+    const responseData = new SuccessException("Role data received", getRoleData)
 
     return res.send(responseData.getResponse)
 
@@ -348,7 +338,6 @@ export async function editRole(req: RequestEditRole, res: Response): Promise<Res
   try {
 
     const { role_uid } = req.params;
-    const inputData    = req.body;
 
     const schema = Joi.object({
       display_name    : Joi.string().min(4).max(30).required().messages({
@@ -357,7 +346,7 @@ export async function editRole(req: RequestEditRole, res: Response): Promise<Res
         'string.min': `Display Name should have a minimum length of 4`,
         'any.required': `Display Name is a required field`
       }),
-      description: Joi.string().max(191).allow('').optional(),
+      description     : Joi.string().max(191).allow('').optional(),
       permissions     : Joi.string().required().messages({
         // 'string.base': `"a" should be a type of 'text'`,
         'string.empty': `Permission cannot be an empty field`,
@@ -374,13 +363,13 @@ export async function editRole(req: RequestEditRole, res: Response): Promise<Res
       return res.status(400).send(exception.getResponse);
     }
     
-    const editRole     = {
-      display_name    : inputData.display_name.trim().toLowerCase(),
-      description     : inputData.description.trim(),
-      permissionJSON  : inputData.permissions,
-      current_user_uid: inputData.current_user_uid.trim(),
+    const editData = {
+      display_name    : req.body.display_name.trim().toLowerCase(),
+      description     : req.body.description.trim(),
+      permissions_json  : req.body.permissions,
+      current_user_uid: req.body.current_user_uid,
     }
-    let nameFormat = editRole.display_name.replace(/\s+/g, '-');
+    let nameFormat = editData.display_name.replace(/\s+/g, '-');
     
     
     const checkRole = await prisma.roles.findFirst({
@@ -399,18 +388,18 @@ export async function editRole(req: RequestEditRole, res: Response): Promise<Res
       }
     })
 
-    if(checkRole?.display_name != editRole.display_name) {
+    if(checkRole?.display_name != editData.display_name) {
       const checkDisplayName = await prisma.roles.findFirst({
         where: {
           AND: [
-            {display_name: editRole.display_name,},
+            {display_name: editData.display_name,},
             {deleted_at: null,},
           ]
         },
       })
 
       if (checkDisplayName) {
-        const exception = new RoleAlreadyExistException("Display Name Already Exist");
+        const exception = new RoleAlreadyExistException("Role name already exist");
         return res.status(400).send(exception.getResponse);
       }
     }
@@ -418,7 +407,7 @@ export async function editRole(req: RequestEditRole, res: Response): Promise<Res
     const currentUser = await prisma.users.findFirst({
       where: {
         AND: [
-          {uid: editRole.current_user_uid,},
+          {uid: editData.current_user_uid,},
           {deleted_at: null,},
         ]
       },
@@ -426,17 +415,17 @@ export async function editRole(req: RequestEditRole, res: Response): Promise<Res
 
     try {
 
-      // let permission = JSON.parse(editRole.permissionJSON);
-      let permissions: {
+      // let permission = JSON.parse(editRole.permissions_json);
+      let editPermissions: {
         permission_uid : string,
         permission_name: string,
         read_permit    : boolean,
         write_permit   : boolean,
         modify_permit  : boolean,
         delete_permit  : boolean,
-      }[]       = JSON.parse(editRole.permissionJSON);
-      console.log(permissions);
-      const permissionList = permissions.map(
+      }[] = JSON.parse(editData.permissions_json);
+
+      const permissionList = editPermissions.map(
         ( permission ) => (
           { 
             read_permit  : permission.read_permit,
@@ -451,16 +440,15 @@ export async function editRole(req: RequestEditRole, res: Response): Promise<Res
 
           })
       );
-      console.log(permissionList);
-
+      
       const updateRole = await prisma.roles.update({
         where: {
           uid: role_uid
         },
         data: {
           name             : nameFormat,
-          display_name     : editRole.display_name,
-          description      : editRole.description,
+          display_name     : editData.display_name,
+          description      : editData.description,
           updated_at       : moment().tz('Asia/Jakarta').format().toString(),
           updatedby        : {
             connect : {
@@ -518,9 +506,8 @@ export async function editRole(req: RequestEditRole, res: Response): Promise<Res
 export async function deleteRole(req: RequestDeleteRole, res: Response): Promise<Response> {
   try {
     
-    const { role_uid }     = req.params;
-    const inputData        = req.body;
-    const current_user_uid = inputData.current_user_uid.trim()
+    const { role_uid } = req.params;
+    const deleteData   = req.body;
     
     const checkRole = await prisma.roles.findFirst({
       where: {
@@ -539,7 +526,7 @@ export async function deleteRole(req: RequestDeleteRole, res: Response): Promise
     const currentUser = await prisma.users.findFirst({
       where: {
         AND: [
-          {uid: current_user_uid,},
+          {uid: deleteData.current_user_uid,},
           {deleted_at: null,},
         ]
       },

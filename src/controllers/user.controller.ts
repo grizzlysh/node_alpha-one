@@ -36,13 +36,13 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
       username: Joi.string().min(6).max(30).required().messages({
         // 'string.base': `"a" should be a type of 'text'`,
         'string.empty': `Username cannot be an empty field`,
-        'string.min': `Username should have a minimum length of 6`,
+        'string.min'  : `Username should have a minimum length of 6`,
         'any.required': `Username is a required field`
       }),
       name    : Joi.string().min(1).max(30).required().messages({
         // 'string.base': `"a" should be a type of 'text'`,
         'string.empty': `Name cannot be an empty field`,
-        'string.min': `Name should have a minimum length of 1`,
+        'string.min'  : `Name should have a minimum length of 1`,
         'any.required': `Name is a required field`
       }),
       sex     : Joi.string().min(1).max(1).required().messages({
@@ -80,19 +80,20 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
       return res.status(400).send(exception.getResponse);
     }
 
-    const inputData        = req.body;
-    const username         = inputData.username.trim().toLowerCase();
-    const name             = inputData.name.trim().toLowerCase();
-    const sex              = inputData.sex.trim();
-    const email            = inputData.email.trim();
-    const password         = inputData.password.trim();
-    const current_user_uid = inputData.current_user_uid.trim();
-    const role_uid         = inputData.role_uid.trim();
+    const inputData = {
+      username        : req.body.username.trim().toLowerCase(),
+      name            : req.body.name.trim().toLowerCase(),
+      sex             : req.body.sex,
+      email           : req.body.email.trim(),
+      password        : req.body.password.trim(),
+      role_uid        : req.body.role_uid,
+      current_user_uid: req.body.current_user_uid,
+    }
 
     const currentUser = await prisma.users.findFirst({
       where: {
         AND: [
-          {uid: current_user_uid,},
+          {uid: inputData.current_user_uid,},
           {deleted_at: null,},
         ],
         role: {
@@ -134,39 +135,38 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
       return res.status(400).send(exception.getResponse);
     }
 
-
     const checkUser = await prisma.users.findFirst({
       where: {
         AND: [
-          {username: username,},
+          {username: inputData.username,},
           {deleted_at: null}
         ]
       },
     })
     
     if (checkUser) {
-      const exception = new UserAlreadyExistException("Username Already Exist");
+      const exception = new UserAlreadyExistException("Username already exist");
       return res.status(400).send(exception.getResponse);
     }
 
     const checkEmail = await prisma.users.findFirst({
       where: {
         AND: [
-          {email: email,},
+          {email: inputData.email,},
           {deleted_at: null,},
         ]
       },
     })
 
     if (checkEmail) {
-      const exception = new UserAlreadyExistException("Email Already Exist");
+      const exception = new UserAlreadyExistException("Email already exist");
       return res.status(400).send(exception.getResponse);
     }
     
     const roleUser =  await prisma.roles.findFirst({
       where: {
         AND: [
-          {uid: role_uid,},
+          {uid: inputData.role_uid,},
           {deleted_at: null,},
         ]
       },
@@ -178,15 +178,15 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
     }
     
     const salt            = await bcryptjs.genSalt(10);
-    const encryptPassword = await bcryptjs.hash(password, salt);
+    const encryptPassword = await bcryptjs.hash(inputData.password, salt);
     
     try {
       let user = await prisma.users.create({
         data: {
-          username  : username,
-          name      : name,
-          sex       : sex,
-          email     : email,
+          username  : inputData.username,
+          name      : inputData.name,
+          sex       : inputData.sex,
+          email     : inputData.email,
           password  : encryptPassword,
           created_at: moment().tz('Asia/Jakarta').format().toString(),
           updated_at: moment().tz('Asia/Jakarta').format().toString(),
@@ -315,7 +315,7 @@ export async function getUser(req: RequestGetUser, res: Response): Promise<Respo
       total_pages : userData.totalPages
     }
     
-    const responseData = new SuccessException("User Data received", getUserData)
+    const responseData = new SuccessException("User data received", getUserData)
 
     return res.send(responseData.getResponse)
 
@@ -383,7 +383,7 @@ export async function getUserById(req: RequestGetUserByID, res: Response): Promi
       data: user
     }
     
-    const responseData = new SuccessException("User Data received", getUserData)
+    const responseData = new SuccessException("User data received", getUserData)
 
     return res.send(responseData.getResponse)
 
@@ -396,17 +396,16 @@ export async function getUserById(req: RequestGetUserByID, res: Response): Promi
 export async function editUser(req: RequestEditUser, res: Response): Promise<Response> {
   try {
     const { user_uid } = req.params;
-    const inputData    = req.body;
 
     const schema = Joi.object({
       username: Joi.string().min(6).max(30).messages({
         'string.empty': `Username cannot be an empty field`,
-        'string.min': `Username should have a minimum length of 6`,
+        'string.min'  : `Username should have a minimum length of 6`,
         'any.required': `Username is a required field`
       }),
       name    : Joi.string().min(1).max(30).required().messages({
         'string.empty': `Name cannot be an empty field`,
-        'string.min': `Name should have a minimum length of 1`,
+        'string.min'  : `Name should have a minimum length of 1`,
         'any.required': `Name is a required field`
       }),
       sex     : Joi.string().min(1).max(1).required().messages({
@@ -438,14 +437,14 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
       return res.status(400).send(exception.getResponse);
     }
 
-    const editUser     = {
-      username        : inputData.username.trim().toLowerCase(),
-      name            : inputData.name.trim().toLowerCase(),
-      sex             : inputData.sex.trim(),
-      email           : inputData.email.trim(),
-      password        : inputData.password.trim(),
-      current_user_uid: inputData.current_user_uid.trim(),
-      role_uid        : inputData.role_uid.trim(),
+    const editData     = {
+      username        : req.body.username.trim().toLowerCase(),
+      name            : req.body.name.trim().toLowerCase(),
+      sex             : req.body.sex,
+      email           : req.body.email.trim(),
+      password        : req.body.password.trim(),
+      current_user_uid: req.body.current_user_uid,
+      role_uid        : req.body.role_uid,
     }
     let isEmailUpdated = false;
     
@@ -473,34 +472,34 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
       }
     })
 
-    if(checkUser?.username != editUser.username) {
+    if(checkUser?.username != editData.username) {
       const checkUsername = await prisma.users.findFirst({
         where: {
           AND: [
-            {username: editUser.username,},
+            {username: editData.username,},
             {deleted_at: null,},
           ]
         },
       })
 
       if (checkUsername) {
-        const exception = new UserAlreadyExistException("Username Already Exist");
+        const exception = new UserAlreadyExistException("Username already exist");
         return res.status(400).send(exception.getResponse);
       }
     }
 
-    if(checkUser?.email != editUser.email) {
+    if(checkUser?.email != editData.email) {
       const checkEmail = await prisma.users.findFirst({
         where: {
           AND: [
-            {email: editUser.email,},
+            {email: editData.email,},
             {deleted_at: null,},
           ]
         },
       })
 
       if (checkEmail) {
-        const exception = new UserAlreadyExistException("Email Already Exist");
+        const exception = new UserAlreadyExistException("Email already exist");
         return res.status(400).send(exception.getResponse);
       }
 
@@ -510,7 +509,7 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
     const roleUser =  await prisma.roles.findFirst({
       where: {
         AND: [
-          {uid: editUser.role_uid,},
+          {uid: editData.role_uid,},
           {deleted_at: null,},
         ]
       },
@@ -524,7 +523,7 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
     const currentUser = await prisma.users.findFirst({
       where: {
         AND: [
-          {uid: editUser.current_user_uid,},
+          {uid: editData.current_user_uid,},
           {deleted_at: null,},
         ]
       },
@@ -532,8 +531,8 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
     const salt            = await bcryptjs.genSalt(10);
     let   encryptPassword;
 
-    if (editUser.password != '') {
-      encryptPassword = await bcryptjs.hash(editUser.password, salt);
+    if (editData.password != '') {
+      encryptPassword = await bcryptjs.hash(editData.password, salt);
     }
     else {
       encryptPassword = checkUser?.password
@@ -545,10 +544,10 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
           uid: user_uid
         },
         data: {
-          username         : editUser.username,
-          name             : editUser.name,
-          sex              : editUser.sex,
-          email            : editUser.email,
+          username         : editData.username,
+          name             : editData.name,
+          sex              : editData.sex,
+          email            : editData.email,
           password         : encryptPassword,
           email_verified_at: isEmailUpdated ? null : checkUser?.email_verified_at,
           updated_at       : moment().tz('Asia/Jakarta').format().toString(),
@@ -557,7 +556,7 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
               id: currentUser?.id
             }
           },
-          ...( (checkUser?.role.uid != editUser.role_uid) ? {
+          ...( (checkUser?.role.uid != editData.role_uid) ? {
             role: {
               connect: {
                 id: roleUser.id
@@ -642,7 +641,6 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
 export async function resetPassword(req: RequestResetPassword, res: Response): Promise<Response> {
   try {
     const { user_uid } = req.params;
-    const inputData    = req.body;
 
     const schema = Joi.object({
       password: Joi.string().min(6).max(200).required().messages({
@@ -660,32 +658,33 @@ export async function resetPassword(req: RequestResetPassword, res: Response): P
 
     const { error } = schema.validate(req.body);
 
+    const resetData = {
+      password        : req.body.password.trim(),
+      repassword      : req.body.repassword.trim(),
+      current_user_uid: req.body.current_user_uid,
+    }
+
     if (error) {
       const exception = new InvalidInputException(error.message);
       return res.status(400).send(exception.getResponse);
     }
 
-    if(inputData.password != inputData.repassword) {
+    if(resetData.password != resetData.repassword) {
       const exception = new InvalidInputException("Confirm password is not the same as password");
       return res.status(400).send(exception.getResponse);
-    }
-
-    const editUser     = {
-      password        : inputData.password.trim(),
-      current_user_uid: inputData.current_user_uid.trim(),
     }
     
     const currentUser = await prisma.users.findFirst({
       where: {
         AND: [
-          {uid: editUser.current_user_uid,},
+          {uid: resetData.current_user_uid,},
           {deleted_at: null,},
         ]
       },
     })
 
     const salt            = await bcryptjs.genSalt(10);
-    const encryptPassword = await bcryptjs.hash(editUser.password, salt);
+    const encryptPassword = await bcryptjs.hash(resetData.password, salt);
 
     try {
       const updateUser = await prisma.users.update({
@@ -769,15 +768,8 @@ export async function resetPassword(req: RequestResetPassword, res: Response): P
 export async function deleteUser(req: RequestDeleteUser, res: Response): Promise<Response> {
   try {
     
-    const { user_uid }     = req.params;
-    const inputData        = req.body;
-    const current_user_uid = inputData.current_user_uid.trim()
-
-    // const user = await prisma.users.delete({
-    //   where: {
-    //     uid: uid?.toString()
-    //   },
-    // })
+    const { user_uid } = req.params;
+    const deleteData   = req.body;
 
     const checkUser = await prisma.users.findFirst({
       where: {
@@ -796,7 +788,7 @@ export async function deleteUser(req: RequestDeleteUser, res: Response): Promise
     const currentUser = await prisma.users.findFirst({
       where: {
         AND: [
-          {uid: current_user_uid,},
+          {uid: deleteData.current_user_uid,},
           {deleted_at: null,},
         ]
       },

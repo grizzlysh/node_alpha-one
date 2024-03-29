@@ -7,7 +7,7 @@ class InvalidInputException implements HttpException {
 
   constructor(inputMessage?: string) {
     this.status  = 701;
-    this.message = inputMessage ? inputMessage : "Invalid Credentials";
+    this.message = inputMessage ? inputMessage : "Invalid credentials";
   }
 
   get getResponse() {

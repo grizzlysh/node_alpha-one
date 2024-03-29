@@ -42,8 +42,8 @@ model permissions {
   created_by      Int?
   updated_by      Int?
   deleted_by      Int?
-  createdby       users?             @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
-  updatedby       users?             @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  createdby       users?            @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby       users?            @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
   deletedby       users?            @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
   permission_role permission_role[]
 }
@@ -52,7 +52,7 @@ model roles {
   id              Int               @id @default(autoincrement())
   uid             String            @unique @default(uuid()) @db.Uuid
   name            String            @unique @db.VarChar(191)
-  display_name    String           @db.VarChar(191)
+  display_name    String            @db.VarChar(191)
   description     String?           @db.Text
   created_at      DateTime          @db.Timestamp(0)
   updated_at      DateTime          @db.Timestamp(0)
@@ -60,7 +60,7 @@ model roles {
   created_by      Int?
   updated_by      Int?
   deleted_by      Int?
-  createdby       users?             @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  createdby       users?            @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
   updatedby       users?            @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
   deletedby       users?            @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
   permission_role permission_role[]
@@ -99,9 +99,9 @@ model users {
   shapes_c                shapes[]                @relation("created_by")
   shapes_u                shapes[]                @relation("updated_by")
   shapes_d                shapes[]                @relation("deleted_by")
-  types_c                 types[]                 @relation("created_by")
-  types_u                 types[]                 @relation("updated_by")
-  types_d                 types[]                 @relation("deleted_by")
+  therapy_classes_c       therapy_classes[]       @relation("created_by")
+  therapy_classes_u       therapy_classes[]       @relation("updated_by")
+  therapy_classes_d       therapy_classes[]       @relation("deleted_by")
   categories_c            categories[]            @relation("created_by")
   categories_u            categories[]            @relation("updated_by")
   categories_d            categories[]            @relation("deleted_by")
@@ -171,7 +171,7 @@ model shapes {
   deletedby  users?    @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
 }
 
-model types {
+model categories {
   id         Int       @id @default(autoincrement())
   uid        String    @unique @default(uuid()) @db.Uuid
   name       String    @db.VarChar(200)
@@ -187,7 +187,7 @@ model types {
   deletedby  users?    @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
 }
 
-model categories {
+model therapy_classes {
   id         Int       @id @default(autoincrement())
   uid        String    @unique @default(uuid()) @db.Uuid
   name       String    @db.VarChar(200)
@@ -208,9 +208,10 @@ model drugs {
   uid                   String                  @unique @default(uuid()) @db.Uuid
   name                  String                  @db.VarChar(200)
   shape_id              Int
-  type_id               Int
   category_id           Int
-  note                  String?
+  therapy_class_id      Int
+  description           String?
+  status                String
   created_at            DateTime                @db.Timestamp(0)
   updated_at            DateTime                @db.Timestamp(0)
   deleted_at            DateTime?               @db.Timestamp(0)
@@ -221,9 +222,9 @@ model drugs {
   detail_invoices       detail_invoices[]
   detail_formulas       detail_formulas[]
   detail_order_invoices detail_order_invoices[]
-  types                 types                   @relation(fields: [type_id], references: [id], onDelete: Cascade)
   shapes                shapes                  @relation(fields: [shape_id], references: [id], onDelete: Cascade)
   categories            categories              @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  therapy_classes       therapy_classes         @relation(fields: [therapy_class_id], references: [id], onDelete: Cascade)
   createdby             users                   @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
   updatedby             users                   @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
   deletedby             users?                  @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
@@ -233,8 +234,10 @@ model formulas {
   id              Int               @id @default(autoincrement())
   uid             String            @unique @default(uuid()) @db.Uuid
   name            String            @db.VarChar(200)
-  no_formula      Int
+  no_formula      String            @db.VarChar(191)
+  no_barcode      String            @db.VarChar(191)
   price           Int
+  status          String
   description     String?           @db.Text
   created_at      DateTime          @db.Timestamp(0)
   updated_at      DateTime          @db.Timestamp(0)
@@ -277,6 +280,8 @@ model distributors {
   phone           String            @db.VarChar(50)
   no_permit       String            @db.VarChar(50)
   contact_person  String            @db.VarChar(50)
+  status          String
+  description     String?           @db.Text
   created_at      DateTime          @db.Timestamp(0)
   updated_at      DateTime          @db.Timestamp(0)
   deleted_at      DateTime?         @db.Timestamp(0)
@@ -338,7 +343,7 @@ model detail_invoices {
   created_by       Int
   updated_by       Int
   deleted_by       Int?
-  detail_stocks    detail_stocks[]
+  detail_stocks    detail_stocks?
   history_stocks   history_stocks[]
   return_invoices  return_invoices[]
   drugs            drugs             @relation(fields: [drug_id], references: [id], onDelete: Cascade)
@@ -373,7 +378,8 @@ model return_invoices {
   invoice_id        Int
   detail_invoice_id Int
   return_date       DateTime?        @db.Date
-  qty_return        Int
+  qty_box_return        Int
+  qty_pcs_return        Int
   total_return      Int
   status            String           @db.VarChar(191)
   confirm_date      DateTime?        @db.Date
@@ -447,6 +453,7 @@ model stocks {
   updated_by    Int
   deleted_by    Int?
   detail_stocks detail_stocks[]
+  history_stocks history_stocks[]
   drugs         drugs           @relation(fields: [drug_id], references: [id], onDelete: Cascade)
   createdby     users           @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
   updatedby     users           @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
@@ -457,14 +464,13 @@ model detail_stocks {
   id                Int              @id @default(autoincrement())
   uid               String           @unique @default(uuid()) @db.Uuid
   stock_id          Int
-  detail_invoice_id Int?
+  detail_invoice_id Int?             @unique
   qty_pcs           Int
   qty_box           Int?
   expired_at        DateTime         @db.Date
   no_barcode        String           @db.VarChar(191)
   no_batch          String?          @db.VarChar(191)
   is_initiate       Boolean          @default(false)
-  description       String?          @db.Text
   created_at        DateTime         @db.Timestamp(0)
   updated_at        DateTime         @db.Timestamp(0)
   deleted_at        DateTime?        @db.Timestamp(0)
@@ -475,7 +481,7 @@ model detail_stocks {
   history_stocks    history_stocks[]
   // temp_sales        temp_sales[]
   stocks            stocks           @relation(fields: [stock_id], references: [id], onDelete: Cascade)
-  detail_invoices   detail_invoices? @relation(fields: [detail_invoice_id], references: [id], onDelete: Cascade)
+  detail_invoices   detail_invoices? @relation(fields: [detail_invoice_id], references: [id])
   createdby         users            @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
   updatedby         users            @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
   deletedby         users?           @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
@@ -498,6 +504,7 @@ model history_stocks {
   created_by        Int
   updated_by        Int
   deleted_by        Int?
+  stocks            stocks?          @relation(fields: [stock_id], references: [id], onDelete: Cascade)
   detail_sales      detail_sales?    @relation(fields: [detail_sale_id], references: [id], onDelete: Cascade)
   detail_stocks     detail_stocks?   @relation(fields: [detail_stock_id], references: [id], onDelete: Cascade)
   detail_invoices   detail_invoices? @relation(fields: [detail_invoice_id], references: [id], onDelete: Cascade)
