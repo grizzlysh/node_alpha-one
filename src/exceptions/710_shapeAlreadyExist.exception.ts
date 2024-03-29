@@ -7,7 +7,7 @@ class ShapeAlreadyExistException implements HttpException {
 
   constructor(inputMessage?: string) {
     this.status  = 710;
-    this.message = inputMessage ? inputMessage : "Shape Already Exist";
+    this.message = inputMessage ? inputMessage : "Shape already exist";
   }
 
   get getResponse() {

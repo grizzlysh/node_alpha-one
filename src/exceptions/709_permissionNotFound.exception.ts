@@ -7,7 +7,7 @@ class PermissionNotFoundException implements HttpException {
 
   constructor(inputMessage?: string) {
     this.status  = 709;
-    this.message = inputMessage ? inputMessage : "Permission Not Found";
+    this.message = inputMessage ? inputMessage : "Permission not found";
   }
 
   get getResponse() {

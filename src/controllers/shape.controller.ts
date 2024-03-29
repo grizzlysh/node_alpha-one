@@ -46,28 +46,29 @@ export async function createShape(req: RequestCreateShape, res: Response): Promi
       return res.status(400).send(exception.getResponse);
     }
 
-    const inputData        = req.body;
-    const name             = inputData.name.trim().toLowerCase();
-    const current_user_uid = inputData.current_user_uid.trim();
+    const inputData = {
+      name            : req.body.name.trim().toLowerCase(),
+      current_user_uid: req.body.current_user_uid,
+    }
 
     const checkShape = await prisma.shapes.findFirst({
       where: {
         AND: [
-          {name: name,},
+          {name: inputData.name,},
           {deleted_at: null,},
         ]
       },
     })
 
     if (checkShape) {
-      const exception = new ShapeAlreadyExistException("Shape Name Already Exist");
+      const exception = new ShapeAlreadyExistException("Shape name already exist");
       return res.status(400).send(exception.getResponse);
     }
 
     const currentUser = await prisma.users.findFirst({
       where: {
         AND: [
-          {uid: current_user_uid,},
+          {uid: inputData.current_user_uid,},
           {deleted_at: null,},
         ]
       },
@@ -76,7 +77,7 @@ export async function createShape(req: RequestCreateShape, res: Response): Promi
     try {
       let shape = await prisma.shapes.create({
         data: {
-          name        : name,
+          name        : inputData.name,
           created_at  : moment().tz('Asia/Jakarta').format().toString(),
           updated_at  : moment().tz('Asia/Jakarta').format().toString(),
           createdby   : {
@@ -167,7 +168,7 @@ export async function getShape(req: RequestGetShape, res: Response): Promise<Res
       total_pages : shapeData.totalPages
     }
     
-    const responseData = new SuccessException("Shape Data received", getShapeData)
+    const responseData = new SuccessException("Shape data received", getShapeData)
 
     return res.send(responseData.getResponse)
 
@@ -222,7 +223,7 @@ export async function getShapeById(req: RequestGetShapeByID, res: Response): Pro
       data: shape
     }
     
-    const responseData = new SuccessException("Shape Data received", getShapeData)
+    const responseData = new SuccessException("Shape data received", getShapeData)
 
     return res.send(responseData.getResponse)
 
@@ -236,7 +237,7 @@ export async function editShape(req: RequestEditShape, res: Response): Promise<R
   try {
 
     const { shape_uid } = req.params;
-    const inputData     = req.body;
+    // const inputData     = req.body;
 
     const schema = Joi.object({
       name: Joi.string().min(1).max(60).required().messages({
@@ -257,9 +258,9 @@ export async function editShape(req: RequestEditShape, res: Response): Promise<R
       return res.status(400).send(exception.getResponse);
     }
     
-    const editShape     = {
-      name            : inputData.name.trim().toLowerCase(),
-      current_user_uid: inputData.current_user_uid.trim(),
+    const editData = {
+      name            : req.body.name.trim().toLowerCase(),
+      current_user_uid: req.body.current_user_uid,
     }
     
     const checkShape = await prisma.shapes.findFirst({
@@ -275,18 +276,18 @@ export async function editShape(req: RequestEditShape, res: Response): Promise<R
       }
     })
 
-    if(checkShape?.name != editShape.name) {
+    if(checkShape?.name != editData.name) {
       const checkName = await prisma.shapes.findFirst({
         where: {
           AND: [
-            {name: editShape.name,},
+            {name: editData.name,},
             {deleted_at: null,},
           ]
         },
       })
 
       if (checkName) {
-        const exception = new ShapeAlreadyExistException("Name Already Exist");
+        const exception = new ShapeAlreadyExistException("Shape name already exist");
         return res.status(400).send(exception.getResponse);
       }
     }
@@ -294,7 +295,7 @@ export async function editShape(req: RequestEditShape, res: Response): Promise<R
     const currentUser = await prisma.users.findFirst({
       where: {
         AND: [
-          {uid: editShape.current_user_uid,},
+          {uid: editData.current_user_uid,},
           {deleted_at: null,},
         ]
       },
@@ -306,7 +307,7 @@ export async function editShape(req: RequestEditShape, res: Response): Promise<R
           uid: shape_uid
         },
         data: {
-          name             : editShape.name,
+          name             : editData.name,
           updated_at       : moment().tz('Asia/Jakarta').format().toString(),
           updatedby        : {
             connect : {
@@ -356,9 +357,8 @@ export async function editShape(req: RequestEditShape, res: Response): Promise<R
 export async function deleteShape(req: RequestDeleteShape, res: Response): Promise<Response> {
   try {
     
-    const { shape_uid }    = req.params;
-    const inputData        = req.body;
-    const current_user_uid = inputData.current_user_uid.trim()
+    const { shape_uid } = req.params;
+    const deleteData    = req.body;
     
     const checkShape = await prisma.shapes.findFirst({
       where: {
@@ -377,7 +377,7 @@ export async function deleteShape(req: RequestDeleteShape, res: Response): Promi
     const currentUser = await prisma.users.findFirst({
       where: {
         AND: [
-          {uid: current_user_uid,},
+          {uid: deleteData.current_user_uid,},
           {deleted_at: null,},
         ]
       },

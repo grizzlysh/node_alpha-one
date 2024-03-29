@@ -7,7 +7,7 @@ class PermissionAlreadyExistException implements HttpException {
 
   constructor(inputMessage?: string) {
     this.status  = 708;
-    this.message = inputMessage ? inputMessage : "Permission Already Exist";
+    this.message = inputMessage ? inputMessage : "Permission already exist";
   }
 
   get getResponse() {

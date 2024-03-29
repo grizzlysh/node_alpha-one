@@ -48,14 +48,15 @@ export async function loginHandler(req: RequestLogin, res: Response): Promise<Re
       return res.status(400).send(exception.getResponse)
     }
     
-    const inputData = req.body;
-    const username  = inputData.username.trim();
-    const password  = inputData.password.trim();
+    const inputData = {
+      username: req.body.username.trim(),
+      password: req.body.password.trim(),
+    }
     
     const checkUser= await prisma.users.findFirst({
       where: {
         AND: [
-          {username: username,},
+          {username: inputData.username,},
           {deleted_at: null},
         ]
       },
@@ -98,7 +99,7 @@ export async function loginHandler(req: RequestLogin, res: Response): Promise<Re
       return res.status(400).send(exception.getResponse)
     }
     
-    const validPassword = await bcryptjs.compare(password, checkUser.password);
+    const validPassword = await bcryptjs.compare(inputData.password, checkUser.password);
 
     if (!validPassword){
       const exception = new InvalidInputException("Wrong Password");
@@ -269,18 +270,19 @@ export async function registerHandler(req: RequestRegister, res: Response): Prom
       return res.status(400).send(exception.getResponse)
     }
 
-    const inputData = req.body;
-    const username  = inputData.username.trim();
-    const name      = inputData.name.trim();
-    const sex       = inputData.sex.trim();
-    const email     = inputData.email.trim();
-    const password  = inputData.password.trim();
+    const inputData = {
+      username  :req.body.username.trim(),
+      name      :req.body.name.trim(),
+      sex       :req.body.sex,
+      email     :req.body.email.trim(),
+      password  :req.body.password.trim(),
+    }
 
 
     const checkUser = await prisma.users.findFirst({
       where: {
         AND: [
-          {username: username,},
+          {username: inputData.username,},
           {deleted_at: null},
         ]
       },
@@ -292,15 +294,15 @@ export async function registerHandler(req: RequestRegister, res: Response): Prom
     }
 
     const salt            = await bcryptjs.genSalt(10);
-    const encryptPassword = await bcryptjs.hash(password, salt);
+    const encryptPassword = await bcryptjs.hash(inputData.password, salt);
     
     try {
       let user = await prisma.users.create({
         data: {
-          username  : username,
-          name      : name,
-          sex       : sex,
-          email     : email,
+          username  : inputData.username,
+          name      : inputData.name,
+          sex       : inputData.sex,
+          email     : inputData.email,
           password  : encryptPassword,
           created_at: moment().tz('Asia/Jakarta').format().toString(),
           updated_at: moment().tz('Asia/Jakarta').format().toString(),

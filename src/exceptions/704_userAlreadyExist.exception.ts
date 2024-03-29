@@ -7,7 +7,7 @@ class UserAlreadyExistException implements HttpException {
 
   constructor(inputMessage?: string) {
     this.status  = 704;
-    this.message = inputMessage ? inputMessage : "User Already Exist";
+    this.message = inputMessage ? inputMessage : "User already exist";
   }
 
   get getResponse() {

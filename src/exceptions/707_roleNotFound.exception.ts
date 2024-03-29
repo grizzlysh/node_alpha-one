@@ -7,7 +7,7 @@ class RoleNotFoundException implements HttpException {
 
   constructor(inputMessage?: string) {
     this.status  = 707;
-    this.message = inputMessage ? inputMessage : "Role Not Found";
+    this.message = inputMessage ? inputMessage : "Role not found";
   }
 
   get getResponse() {

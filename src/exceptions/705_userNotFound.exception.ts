@@ -7,7 +7,7 @@ class UserNotFoundException implements HttpException {
 
   constructor(inputMessage?: string) {
     this.status  = 705;
-    this.message = inputMessage ? inputMessage : "User Not Found";
+    this.message = inputMessage ? inputMessage : "User not found";
   }
 
   get getResponse() {

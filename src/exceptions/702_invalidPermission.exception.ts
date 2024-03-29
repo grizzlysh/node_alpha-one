@@ -7,7 +7,7 @@ class InvalidPermissionException implements HttpException {
 
   constructor(inputMessage?: string) {
     this.status  = 702;
-    this.message = inputMessage ? inputMessage : "No Permission";
+    this.message = inputMessage ? inputMessage : "No permission";
   }
 
   get getResponse() {

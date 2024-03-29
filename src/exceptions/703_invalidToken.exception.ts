@@ -7,7 +7,7 @@ class InvalidTokenException implements HttpException {
 
   constructor(inputMessage?: string) {
     this.status  = 703;
-    this.message = inputMessage ? inputMessage : "Invalid Auth Token";
+    this.message = inputMessage ? inputMessage : "Invalid auth token";
   }
 
   get getResponse() {
