@@ -2,7 +2,7 @@ import moment from 'moment-timezone';
 import Joi, { not } from 'joi';
 import jwt from 'jsonwebtoken';
 import bcryptjs from 'bcryptjs';
-import { Response } from "express";
+import { Request, Response } from "express";
 import { PrismaClient, Prisma } from '@prisma/client';
 
 import { getPagination, getPagingData } from '../utils/pagination.util';
@@ -19,6 +19,7 @@ import RequestDeleteDrug from '../interfaces/drug/requestDeleteDrug.interface';
 import RequestCreateDrug from '../interfaces/drug/requestCreateDrug.interface';
 import RequestGetDrugByID from '../interfaces/drug/requestGetDrugByID.interface';
 import ResponseGetDrugByID from '../interfaces/drug/responseGetDrugByID.interface';
+import ResponseGetDrugDdl from '../interfaces/drug/responseGetDrugDdl.interface';
 
 const prisma = new PrismaClient({
   log: ['query'],
@@ -29,15 +30,15 @@ export async function createDrug(req: RequestCreateDrug, res: Response): Promise
   try {
     const schema = Joi.object({
       name: Joi.string().min(1).max(60).required().messages({
-        // 'string.base': `"a" should be a type of 'text'`,
+          // 'string.base': `"a" should be a type of 'text'`,
         'string.empty': `Name cannot be an empty field`,
         'string.min'  : `Name should have a minimum length of 1`,
         'any.required': `Name is a required field`
       }),
-      description     : Joi.string().max(191).allow('').optional(),
-      status          : Joi.string().required().messages({
-        'string.empty': `Status cannot be an empty field`,
-        'any.required': `STatus is a required field`
+      description: Joi.string().max(191).allow('').optional(),
+      status     : Joi.boolean().required().messages({
+        'boolean.empty': `Status cannot be an empty field`,
+        'any.required' : `STatus is a required field`
       }),
       shape_uid       : Joi.string().required().messages({
         'string.empty': `Shape cannot be an empty field`,
@@ -66,7 +67,7 @@ export async function createDrug(req: RequestCreateDrug, res: Response): Promise
     const inputData   = {
       name             : req.body.name.trim().toLowerCase(),
       description      : req.body.description.trim(),
-      status           : req.body.status,
+      status           : (String(req.body.status).toLowerCase() === 'true'),
       shape_uid        : req.body.shape_uid,
       category_uid     : req.body.category_uid,
       therapy_class_uid: req.body.therapy_class_uid,
@@ -104,7 +105,7 @@ export async function createDrug(req: RequestCreateDrug, res: Response): Promise
           status     : inputData.status,
           shapes     : {
             connect: {
-              uid : inputData.shape_uid,
+              uid: inputData.shape_uid,
             }
           },
           categories: {
@@ -137,12 +138,12 @@ export async function createDrug(req: RequestCreateDrug, res: Response): Promise
       return res.send(responseData.getResponse)
 
     } catch (err: any) {
-      let exception= new BasicErrorException(err.message);
+      let exception = new BasicErrorException(err.message);
       return res.status(400).send(exception.getResponse)
     }
 
   } catch (e: any) {
-    let exception= new BasicErrorException(e.message);
+    let exception = new BasicErrorException(e.message);
     return res.status(400).send(exception.getResponse)
   }
 
@@ -157,8 +158,8 @@ export async function getDrug(req: RequestGetDrug, res: Response): Promise<Respo
     const { limit, offset }                 = getPagination(page, size);
 
     const query: Prisma.drugsFindManyArgs = {
-      skip: offset,
-      take: limit,
+      skip : offset,
+      take : limit,
       where: {
         AND:[
           {deleted_at: null,},
@@ -232,7 +233,7 @@ export async function getDrug(req: RequestGetDrug, res: Response): Promise<Respo
     return res.send(responseData.getResponse)
 
   } catch (e: any) {
-    let exception= new BasicErrorException(e.message);
+    let exception = new BasicErrorException(e.message);
     return res.status(400).send(exception.getResponse)
   }
 }
@@ -240,7 +241,7 @@ export async function getDrug(req: RequestGetDrug, res: Response): Promise<Respo
 export async function getDrugById(req: RequestGetDrugByID, res: Response): Promise<Response> {
   try {
 
-    const { drug_uid }   = req.params;
+    const { drug_uid } = req.params;
 
     const drug = await prisma.drugs.findFirst({
       where: {
@@ -307,7 +308,7 @@ export async function getDrugById(req: RequestGetDrugByID, res: Response): Promi
     return res.send(responseData.getResponse)
 
   } catch (e: any) {
-    let exception= new BasicErrorException(e.message);
+    let exception = new BasicErrorException(e.message);
     return res.status(400).send(exception.getResponse)
   }
 }
@@ -319,15 +320,15 @@ export async function editDrug(req: RequestEditDrug, res: Response): Promise<Res
 
     const schema = Joi.object({
       name: Joi.string().min(1).max(60).required().messages({
-        // 'string.base': `"a" should be a type of 'text'`,
+          // 'string.base': `"a" should be a type of 'text'`,
         'string.empty': `Name cannot be an empty field`,
         'string.min'  : `Name should have a minimum length of 1`,
         'any.required': `Name is a required field`
       }),
-      description     : Joi.string().max(191).allow('').optional(),
-      status          : Joi.string().required().messages({
-        'string.empty': `Status cannot be an empty field`,
-        'any.required': `STatus is a required field`
+      description: Joi.string().max(191).allow('').optional(),
+      status     : Joi.boolean().required().messages({
+        'boolean.empty': `Status cannot be an empty field`,
+        'any.required' : `STatus is a required field`
       }),
       shape_uid       : Joi.string().required().messages({
         'string.empty': `Shape cannot be an empty field`,
@@ -356,13 +357,13 @@ export async function editDrug(req: RequestEditDrug, res: Response): Promise<Res
     const editData = {
       name             : req.body.name.trim().toLowerCase(),
       description      : req.body.description.trim(),
-      status           : req.body.status,
+      status           : (String(req.body.status).toLowerCase() === 'true'),
       shape_uid        : req.body.shape_uid,
       category_uid     : req.body.category_uid,
       therapy_class_uid: req.body.therapy_class_uid,
       current_user_uid : req.body.current_user_uid,
     }
-    
+
     const checkDrug = await prisma.drugs.findFirst({
       where: {
         AND: [
@@ -371,8 +372,8 @@ export async function editDrug(req: RequestEditDrug, res: Response): Promise<Res
         ]
       },
       select: {
-        uid         : true,
-        name        : true,
+        uid : true,
+        name: true,
       }
     })
 
@@ -412,7 +413,7 @@ export async function editDrug(req: RequestEditDrug, res: Response): Promise<Res
           status     : editData.status,
           shapes     : {
             connect: {
-              uid : editData.shape_uid,
+              uid: editData.shape_uid,
             }
           },
           categories: {
@@ -425,8 +426,8 @@ export async function editDrug(req: RequestEditDrug, res: Response): Promise<Res
               uid: editData.therapy_class_uid,
             }
           },
-          updated_at       : moment().tz('Asia/Jakarta').format().toString(),
-          updatedby        : {
+          updated_at: moment().tz('Asia/Jakarta').format().toString(),
+          updatedby : {
             connect : {
               id: currentUser?.id
             }
@@ -481,12 +482,12 @@ export async function editDrug(req: RequestEditDrug, res: Response): Promise<Res
       return res.send(responseData.getResponse)
 
     } catch (err: any) {
-      let exception= new BasicErrorException(err.message);
+      let exception = new BasicErrorException(err.message);
       return res.status(400).send(exception.getResponse)
     }
 
   } catch (e: any) {
-    let exception= new BasicErrorException(e.message);
+    let exception = new BasicErrorException(e.message);
     return res.status(400).send(exception.getResponse)
   }
 }
@@ -528,7 +529,7 @@ export async function deleteDrug(req: RequestDeleteDrug, res: Response): Promise
         data: {
           updated_at: moment().tz('Asia/Jakarta').format().toString(),
           deleted_at: moment().tz('Asia/Jakarta').format().toString(),
-          updatedby: {
+          updatedby : {
             connect: {
               id: currentUser?.id
             }
@@ -546,11 +547,52 @@ export async function deleteDrug(req: RequestDeleteDrug, res: Response): Promise
       return res.send(responseData.getResponse)
 
     } catch (err: any) {
-      let exception= new BasicErrorException(err.message);
+      let exception = new BasicErrorException(err.message);
       return res.status(400).send(exception.getResponse)
     }
   } catch (e: any) {
-    let exception= new BasicErrorException(e.message);
+    let exception = new BasicErrorException(e.message);
+    return res.status(400).send(exception.getResponse)
+  }
+}
+
+
+export async function getDrugDdl(req: Request, res: Response): Promise<Response> {
+  try {
+
+    const drugList = await prisma.drugs.findMany({
+      where: {
+        AND:[
+          {deleted_at: null,},
+          {status: true,},
+        ]
+      },
+      orderBy: {
+        name: 'asc'
+      },
+      select: {
+        uid : true,
+        name: true,
+      }
+    })
+
+    const drugOptions = drugList.map((drug) => {
+      return {
+        label: drug.name,
+        value: drug.uid,
+      }
+    })
+
+    const getDrugDdlData: ResponseGetDrugDdl = {
+      data: drugOptions,
+    }
+    
+    const responseData = new SuccessException("Drug ddl received", getDrugDdlData)
+
+    return res.send(responseData.getResponse)
+
+  } catch (e: any) {
+    let exception = new BasicErrorException(e.message);
     return res.status(400).send(exception.getResponse)
   }
 }

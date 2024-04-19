@@ -3,7 +3,7 @@ export default interface Drug{
     uid        : string,
     name       : string,
     description: string | null,
-    status     : string,
+    status     : boolean,
     shapes     : {
       name: string;
       uid : string;

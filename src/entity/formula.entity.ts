@@ -6,7 +6,7 @@ export default interface Formula{
     no_formula : string,
     no_barcode : string,
     price      : number,
-    status     : string,
+    status     : boolean,
     description: string | null,
     // detail_formulas: FormulaDetail[],
     detail_formulas: {

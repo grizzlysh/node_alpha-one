@@ -2,7 +2,7 @@ import moment from 'moment-timezone';
 import Joi, { not } from 'joi';
 import jwt from 'jsonwebtoken';
 import bcryptjs from 'bcryptjs';
-import { Response } from "express";
+import { Request, Response } from "express";
 import { PrismaClient, Prisma } from '@prisma/client';
 
 import { getPagination, getPagingData } from '../utils/pagination.util';
@@ -19,6 +19,7 @@ import RequestDeleteTherapyClass from '../interfaces/therapyClass/requestDeleteT
 import RequestCreateTherapyClass from '../interfaces/therapyClass/requestCreateTherapyClass.interface';
 import RequestGetTherapyClassByID from '../interfaces/therapyClass/requestGetTherapyClassByID.interface';
 import ResponseGetTherapyClassByID from '../interfaces/therapyClass/responseGetTherapyClassByID.interface';
+import responseGetTherapyClassDdl from '../interfaces/therapyClass/responseGetTherapyClassDdl.interface';
 
 const prisma = new PrismaClient({
   log: ['query'],
@@ -412,6 +413,46 @@ export async function deleteTherapyClass(req: RequestDeleteTherapyClass, res: Re
       let exception= new BasicErrorException(err.message);
       return res.status(400).send(exception.getResponse)
     }
+  } catch (e: any) {
+    let exception= new BasicErrorException(e.message);
+    return res.status(400).send(exception.getResponse)
+  }
+}
+
+
+export async function getTherapyClassDdl(req: Request, res: Response): Promise<Response> {
+  try {
+
+    const therapyClassList = await prisma.therapy_classes.findMany({
+      where: {
+        AND:[
+          {deleted_at: null,},
+        ]
+      },
+      orderBy: {
+        name: 'asc'
+      },
+      select: {
+        uid : true,
+        name: true,
+      }
+    })
+
+    const therapyClassOptions = therapyClassList.map((therapyClass) => {
+      return {
+        label: therapyClass.name,
+        value: therapyClass.uid,
+      }
+    })
+
+    const getTherapyClassDdlData: responseGetTherapyClassDdl = {
+      data: therapyClassOptions,
+    }
+    
+    const responseData = new SuccessException("Therapy Class ddl received", getTherapyClassDdlData)
+
+    return res.send(responseData.getResponse)
+
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
     return res.status(400).send(exception.getResponse)

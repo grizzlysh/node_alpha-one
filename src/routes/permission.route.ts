@@ -1,11 +1,14 @@
 import express from 'express';
 import checkJwt from '../middleware/checkJwt';
-import { createPermission, deletePermission, editPermission, getPermission, getPermissionById } from '../controllers/permission.controller';
+import { createPermission, deletePermission, editPermission, getPermission, getPermissionById, getPermissionDdl } from '../controllers/permission.controller';
 
 const PermissionRoutes = express.Router();
 
 // create permission
 PermissionRoutes.post('/', checkJwt, createPermission);
+
+// get ddl
+PermissionRoutes.get('/ddl', checkJwt, getPermissionDdl);
 
 // get all permission
 PermissionRoutes.get('/', checkJwt, getPermission);

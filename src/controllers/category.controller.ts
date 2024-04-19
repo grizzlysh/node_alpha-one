@@ -2,7 +2,7 @@ import moment from 'moment-timezone';
 import Joi, { not } from 'joi';
 import jwt from 'jsonwebtoken';
 import bcryptjs from 'bcryptjs';
-import { Response } from "express";
+import { Request, Response } from "express";
 import { PrismaClient, Prisma } from '@prisma/client';
 
 import { getPagination, getPagingData } from '../utils/pagination.util';
@@ -19,6 +19,7 @@ import RequestDeleteCategory from '../interfaces/category/requestDeleteCategory.
 import RequestCreateCategory from '../interfaces/category/requestCreateCategory.interface';
 import RequestGetCategoryByID from '../interfaces/category/requestGetCategoryByID.interface';
 import ResponseGetCategoryByID from '../interfaces/category/responseGetCategoryByID.interface';
+import ResponseGetCategoryDdl from '../interfaces/category/responseGetCategoryDdl.interface';
 
 const prisma = new PrismaClient({
   log: ['query'],
@@ -411,6 +412,45 @@ export async function deleteCategory(req: RequestDeleteCategory, res: Response):
       let exception= new BasicErrorException(err.message);
       return res.status(400).send(exception.getResponse)
     }
+  } catch (e: any) {
+    let exception= new BasicErrorException(e.message);
+    return res.status(400).send(exception.getResponse)
+  }
+}
+
+export async function getCategoryDdl(req: Request, res: Response): Promise<Response> {
+  try {
+
+    const categoryList = await prisma.categories.findMany({
+      where: {
+        AND:[
+          {deleted_at: null,},
+        ]
+      },
+      orderBy: {
+        name: 'asc'
+      },
+      select: {
+        uid : true,
+        name: true,
+      }
+    })
+
+    const categoryOptions = categoryList.map((category) => {
+      return {
+        label: category.name,
+        value: category.uid,
+      }
+    })
+
+    const getCategoryDdlData: ResponseGetCategoryDdl = {
+      data: categoryOptions,
+    }
+    
+    const responseData = new SuccessException("Category ddl received", getCategoryDdlData)
+
+    return res.send(responseData.getResponse)
+
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
     return res.status(400).send(exception.getResponse)

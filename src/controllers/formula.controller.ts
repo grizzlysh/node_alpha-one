@@ -2,7 +2,7 @@ import moment from 'moment-timezone';
 import Joi, { not } from 'joi';
 import jwt from 'jsonwebtoken';
 import bcryptjs from 'bcryptjs';
-import { Response } from "express";
+import { Request, Response } from "express";
 import { PrismaClient, Prisma } from '@prisma/client';
 
 import { getPagination, getPagingData } from '../utils/pagination.util';
@@ -20,6 +20,7 @@ import ResponseGetFormulaByID from '../interfaces/formula/responseGetFormulaByID
 import RequestDeleteFormula from '../interfaces/formula/requestDeleteFormula.interface';
 import RequestEditFormula from '../interfaces/formula/requestEditFormula.interface';
 import { generateBarcodeFormula } from '../utils/barcode.util';
+import ResponseGetFormulaDdl from '../interfaces/formula/responseGetFormulaDdl.interface';
 
 const prisma = new PrismaClient({
   log: ['query'],
@@ -38,8 +39,8 @@ export async function createFormula(req: RequestCreateFormula, res: Response): P
         'string.empty': `Price cannot be an empty field`,
         'any.required': `Price is a required field`
       }),
-      status: Joi.string().required().messages({
-        'string.empty': `Status cannot be an empty field`,
+      status: Joi.boolean().required().messages({
+        'booleanß.empty': `Status cannot be an empty field`,
         'any.required': `STatus is a required field`
       }),
       description: Joi.string().max(191).allow('').optional(),
@@ -62,7 +63,7 @@ export async function createFormula(req: RequestCreateFormula, res: Response): P
     const inputData = {
       name                : req.body.name.trim().toLowerCase(),
       price               : req.body.price,
-      status              : req.body.status,
+      status              : (String(req.body.status).toLowerCase() === 'true'),
       description         : req.body.description.trim(),
       detail_formulas_json: req.body.detail_formulas,
       current_user_uid    : req.body.current_user_uid
@@ -363,9 +364,9 @@ export async function editFormula(req: RequestEditFormula, res: Response): Promi
         'string.empty': `Price cannot be an empty field`,
         'any.required': `Price is a required field`
       }),
-      status: Joi.string().required().messages({
-        'string.empty': `Status cannot be an empty field`,
-        'any.required': `STatus is a required field`
+      status: Joi.boolean().required().messages({
+        'boolean.empty': `Status cannot be an empty field`,
+        'any.required' : `STatus is a required field`
       }),
       description: Joi.string().max(191).allow('').optional(),
       // detail_formulas: Joi.string().required().messages({
@@ -387,7 +388,7 @@ export async function editFormula(req: RequestEditFormula, res: Response): Promi
     const editData = {
       name                : req.body.name.trim().toLowerCase(),
       price               : req.body.price,
-      status              : req.body.status,
+      status              : (String(req.body.status).toLowerCase() === 'true'),
       description         : req.body.description.trim(),
       // detail_formulas_json: req.body.detail_formulas,
       current_user_uid    : req.body.current_user_uid,
@@ -573,6 +574,46 @@ export async function deleteFormula(req: RequestDeleteFormula, res: Response): P
       let exception= new BasicErrorException(err.message);
       return res.status(400).send(exception.getResponse)
     }
+  } catch (e: any) {
+    let exception= new BasicErrorException(e.message);
+    return res.status(400).send(exception.getResponse)
+  }
+}
+
+export async function getFormulaDdl(req: Request, res: Response): Promise<Response> {
+  try {
+
+    const formulaList = await prisma.formulas.findMany({
+      where: {
+        AND:[
+          {deleted_at: null,},
+          {status: true,},
+        ]
+      },
+      orderBy: {
+        name: 'asc'
+      },
+      select: {
+        uid : true,
+        name: true,
+      }
+    })
+
+    const formulaOptions = formulaList.map((formula) => {
+      return {
+        label: formula.name,
+        value: formula.uid,
+      }
+    })
+
+    const getFormulaDdlData: ResponseGetFormulaDdl = {
+      data: formulaOptions,
+    }
+    
+    const responseData = new SuccessException("Formula ddl received", getFormulaDdlData)
+
+    return res.send(responseData.getResponse)
+
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
     return res.status(400).send(exception.getResponse)

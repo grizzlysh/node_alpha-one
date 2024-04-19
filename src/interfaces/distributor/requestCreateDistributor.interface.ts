@@ -7,7 +7,7 @@ interface RequestCreateDistributor extends Request {
     phone           : string,
     no_permit       : string,
     contact_person  : string,
-    status          : string,
+    status          : boolean,
     description     : string,
     current_user_uid: string,
   }

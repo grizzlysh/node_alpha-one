@@ -1,11 +1,14 @@
 import express from 'express';
 import checkJwt from '../middleware/checkJwt';
-import { createRole, deleteRole, editRole, getRole, getRoleById } from '../controllers/role.controller';
+import { createRole, deleteRole, editRole, getRole, getRoleById, getRoleDdl } from '../controllers/role.controller';
 
 const RoleRoutes = express.Router();
 
 // create role
 RoleRoutes.post('/', checkJwt, createRole);
+
+// get ddl
+RoleRoutes.get('/ddl', checkJwt, getRoleDdl);
 
 // get all role
 RoleRoutes.get('/', checkJwt, getRole);

@@ -2,7 +2,7 @@ import moment from 'moment-timezone';
 import Joi, { not } from 'joi';
 import jwt from 'jsonwebtoken';
 import bcryptjs from 'bcryptjs';
-import { Response } from "express";
+import { Request, Response } from "express";
 import { PrismaClient, Prisma } from '@prisma/client';
 
 import { getPagination, getPagingData } from '../utils/pagination.util';
@@ -19,6 +19,7 @@ import RequestDeleteShape from '../interfaces/shape/requestDeleteShape.interface
 import RequestCreateShape from '../interfaces/shape/requestCreateShape.interface';
 import RequestGetShapeByID from '../interfaces/shape/requestGetShapeByID.interface';
 import ResponseGetShapeByID from '../interfaces/shape/responseGetShapeByID.interface';
+import ResponseGetShapeDdl from '../interfaces/shape/responseGetShapeDdl.interface';
 
 const prisma = new PrismaClient({
   log: ['query'],
@@ -412,6 +413,45 @@ export async function deleteShape(req: RequestDeleteShape, res: Response): Promi
       let exception= new BasicErrorException(err.message);
       return res.status(400).send(exception.getResponse)
     }
+  } catch (e: any) {
+    let exception= new BasicErrorException(e.message);
+    return res.status(400).send(exception.getResponse)
+  }
+}
+
+export async function getShapeDdl(req: Request, res: Response): Promise<Response> {
+  try {
+
+    const shapeList = await prisma.shapes.findMany({
+      where: {
+        AND:[
+          {deleted_at: null,},
+        ]
+      },
+      orderBy: {
+        name: 'asc'
+      },
+      select: {
+        uid : true,
+        name: true,
+      }
+    });
+
+    const shapeOptions = shapeList.map((shape) => {
+      return {
+        label: shape.name,
+        value: shape.uid,
+      }
+    })
+
+    const getShapeDdlData: ResponseGetShapeDdl = {
+      data: shapeOptions,
+    }
+    
+    const responseData = new SuccessException("Shape ddl received", getShapeDdlData)
+
+    return res.send(responseData.getResponse)
+
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
     return res.status(400).send(exception.getResponse)

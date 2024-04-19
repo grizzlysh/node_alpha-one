@@ -211,7 +211,7 @@ model drugs {
   category_id           Int
   therapy_class_id      Int
   description           String?
-  status                String
+  status                Boolean @default(false)
   created_at            DateTime                @db.Timestamp(0)
   updated_at            DateTime                @db.Timestamp(0)
   deleted_at            DateTime?               @db.Timestamp(0)
@@ -237,7 +237,7 @@ model formulas {
   no_formula      String            @db.VarChar(191)
   no_barcode      String            @db.VarChar(191)
   price           Int
-  status          String
+  status          Boolean @default(false)
   description     String?           @db.Text
   created_at      DateTime          @db.Timestamp(0)
   updated_at      DateTime          @db.Timestamp(0)
@@ -280,7 +280,7 @@ model distributors {
   phone           String            @db.VarChar(50)
   no_permit       String            @db.VarChar(50)
   contact_person  String            @db.VarChar(50)
-  status          String
+  status          Boolean @default(false)
   description     String?           @db.Text
   created_at      DateTime          @db.Timestamp(0)
   updated_at      DateTime          @db.Timestamp(0)

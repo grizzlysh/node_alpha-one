@@ -6,7 +6,7 @@ export default interface Distributor{
     phone         : string,
     no_permit     : string,
     contact_person: string,
-    status        : string,
+    status        : boolean,
     description   : string | null,
     created_at    : Date | null,
     updated_at    : Date | null,

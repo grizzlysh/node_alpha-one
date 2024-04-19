@@ -1,11 +1,14 @@
 import express from 'express';
 import checkJwt from '../middleware/checkJwt';
-import { createDrug, deleteDrug, editDrug, getDrug, getDrugById } from '../controllers/drug.controller';
+import { createDrug, deleteDrug, editDrug, getDrug, getDrugById, getDrugDdl } from '../controllers/drug.controller';
 
 const DrugRoutes = express.Router();
 
 // create permission
 DrugRoutes.post('/', checkJwt, createDrug);
+
+// get ddl
+DrugRoutes.get('/ddl', checkJwt, getDrugDdl);
 
 // get all permission
 DrugRoutes.get('/', checkJwt, getDrug);
@@ -18,5 +21,6 @@ DrugRoutes.put('/:drug_uid', checkJwt, editDrug);
 
 // delete permission by id
 DrugRoutes.patch('/:drug_uid', checkJwt, deleteDrug);
+
 
 export default DrugRoutes;

@@ -2,7 +2,7 @@ import moment from 'moment-timezone';
 import Joi, { not } from 'joi';
 import jwt from 'jsonwebtoken';
 import bcryptjs from 'bcryptjs';
-import { Response } from "express";
+import { Request, Response } from "express";
 import { PrismaClient, Prisma } from '@prisma/client';
 
 import { getPagination, getPagingData } from '../utils/pagination.util';
@@ -19,6 +19,7 @@ import RequestDeletePermission from '../interfaces/permission/requestDeletePermi
 import RequestCreatePermission from '../interfaces/permission/requestCreatePermission.interface';
 import RequestGetPermissionByID from '../interfaces/permission/requestGetPermissionByID.interface';
 import ResponseGetPermissionByID from '../interfaces/permission/responseGetPermissionByID.interface';
+import ResponseGetPermissionDdl from '../interfaces/permission/responseGetPermissionDdl.interface';
 
 const prisma = new PrismaClient({
   log: ['query'],
@@ -431,6 +432,45 @@ export async function deletePermission(req: RequestDeletePermission, res: Respon
       let exception= new BasicErrorException(err.message);
       return res.status(400).send(exception.getResponse)
     }
+  } catch (e: any) {
+    let exception= new BasicErrorException(e.message);
+    return res.status(400).send(exception.getResponse)
+  }
+}
+
+export async function getPermissionDdl(req: Request, res: Response): Promise<Response> {
+  try {
+
+    const permissionList = await prisma.permissions.findMany({
+      where: {
+        AND:[
+          {deleted_at: null,},
+        ]
+      },
+      orderBy: {
+        name: 'asc'
+      },
+      select: {
+        uid         : true,
+        display_name: true,
+      }
+    });
+
+    const permissionOptions = permissionList.map((permission) => {
+      return {
+        label: permission.display_name,
+        value: permission.uid,
+      }
+    })
+
+    const getPermissionDdlData: ResponseGetPermissionDdl = {
+      data: permissionOptions,
+    }
+    
+    const responseData = new SuccessException("Permission ddl received", getPermissionDdlData)
+
+    return res.send(responseData.getResponse)
+
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
     return res.status(400).send(exception.getResponse)

@@ -2,7 +2,7 @@ import moment from 'moment-timezone';
 import Joi, { not } from 'joi';
 import jwt from 'jsonwebtoken';
 import bcryptjs from 'bcryptjs';
-import { Response } from "express";
+import { Request, Response } from "express";
 import { PrismaClient, Prisma } from '@prisma/client';
 
 import { getPagination, getPagingData } from '../utils/pagination.util';
@@ -19,6 +19,7 @@ import ResponseGetDistributorByID from '../interfaces/distributor/responseGetDis
 import RequestEditDistributor from '../interfaces/distributor/requestEditDistributor.interface';
 import RequestDeleteDistributor from '../interfaces/distributor/requestDeleteDistributor.interface';
 import ResponseGetDistributor from '../interfaces/distributor/responseGetDistributor.interface';
+import ResponseGetDistributorDdl from '../interfaces/distributor/responseGetDistributorDdl.interface';
 
 const prisma = new PrismaClient({
   log: ['query'],
@@ -50,9 +51,9 @@ export async function createDistributor(req: RequestCreateDistributor, res: Resp
         'string.empty': `Contact Person cannot be an empty field`,
         'any.required': `Contact Person is a required field`
       }),
-      status: Joi.string().required().messages({
-        'string.empty': `Status cannot be an empty field`,
-        'any.required': `STatus is a required field`
+      status: Joi.boolean().required().messages({
+        'boolean.empty': `Status cannot be an empty field`,
+        'any.required' : `STatus is a required field`
       }),
       description: Joi.string().max(191).allow('').optional(),
       current_user_uid: Joi.string().min(36).max(36).required().messages({
@@ -74,7 +75,7 @@ export async function createDistributor(req: RequestCreateDistributor, res: Resp
       no_permit       : req.body.no_permit.trim(),
       contact_person  : req.body.contact_person.trim(),
       description     : req.body.description.trim(),
-      status          : req.body.status,
+      status          : (String(req.body.status).toLowerCase() === 'true'),
       current_user_uid: req.body.current_user_uid,
     };
 
@@ -306,8 +307,8 @@ export async function editDistributor(req: RequestEditDistributor, res: Response
         'string.empty': `Contact Person cannot be an empty field`,
         'any.required': `Contact Person is a required field`
       }),
-      status: Joi.string().required().messages({
-        'string.empty': `Status cannot be an empty field`,
+      status: Joi.boolean().required().messages({
+        'boolean.empty': `Status cannot be an empty field`,
         'any.required': `STatus is a required field`
       }),
       description: Joi.string().max(191).allow('').optional(),
@@ -330,7 +331,7 @@ export async function editDistributor(req: RequestEditDistributor, res: Response
       no_permit       : req.body.no_permit.trim(),
       contact_person  : req.body.contact_person.trim(),
       description     : req.body.description.trim(),
-      status          : req.body.status,
+      status          : (String(req.body.status).toLowerCase() === 'true'),
       current_user_uid: req.body.current_user_uid,
     }
     
@@ -495,6 +496,47 @@ export async function deleteDistributor(req: RequestDeleteDistributor, res: Resp
       let exception= new BasicErrorException(err.message);
       return res.status(400).send(exception.getResponse)
     }
+  } catch (e: any) {
+    let exception= new BasicErrorException(e.message);
+    return res.status(400).send(exception.getResponse)
+  }
+}
+
+
+export async function getDistributorDdl(req: Request, res: Response): Promise<Response> {
+  try {
+
+    const distributorList = await prisma.distributors.findMany({
+      where: {
+        AND:[
+          {deleted_at: null,},
+          {status: true,},
+        ]
+      },
+      orderBy: {
+        name: 'asc'
+      },
+      select: {
+        uid : true,
+        name: true,
+      }
+    })
+
+    const distributorOptions = distributorList.map((distributor) => {
+      return {
+        label: distributor.name,
+        value: distributor.uid,
+      }
+    })
+
+    const getDistributorDdlData: ResponseGetDistributorDdl = {
+      data: distributorOptions,
+    }
+    
+    const responseData = new SuccessException("Distributors ddl received", getDistributorDdlData)
+
+    return res.send(responseData.getResponse)
+
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
     return res.status(400).send(exception.getResponse)

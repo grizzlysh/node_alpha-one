@@ -10,7 +10,7 @@ interface RequestEditDrug extends Request {
     category_uid      : string,
     therapy_class_uid : string,
     description       : string,
-    status            : string,
+    status            : boolean,
     current_user_uid  : string,
   }
 }

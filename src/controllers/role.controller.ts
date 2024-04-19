@@ -19,6 +19,7 @@ import RoleNotFoundException from '../exceptions/707_roleNotFound.exception';
 import ResponseGetRoleByID from '../interfaces/role/responseGetRoleByID.interface';
 import RequestEditRole from '../interfaces/role/requestEditRole.interface';
 import RequestDeleteRole from '../interfaces/role/requestDeleteRole.interface';
+import ResponseGetRoleDdl from '../interfaces/role/responseGetRoleDdl.interface';
 
 const prisma = new PrismaClient({
   log: ['query', 'info', 'warn', 'error'],
@@ -561,6 +562,45 @@ export async function deleteRole(req: RequestDeleteRole, res: Response): Promise
       let exception= new BasicErrorException(err.message);
       return res.status(400).send(exception.getResponse)
     }
+  } catch (e: any) {
+    let exception= new BasicErrorException(e.message);
+    return res.status(400).send(exception.getResponse)
+  }
+}
+
+export async function getRoleDdl(req: Request, res: Response): Promise<Response> {
+  try {
+
+    const roleList = await prisma.roles.findMany({
+      where: {
+        AND:[
+          {deleted_at: null,},
+        ]
+      },
+      orderBy: {
+        name: 'asc'
+      },
+      select: {
+        uid         : true,
+        display_name: true,
+      }
+    });
+
+    const roleOptions = roleList.map((role) => {
+      return {
+        label: role.display_name,
+        value: role.uid,
+      }
+    })
+
+    const getRoleDdlData: ResponseGetRoleDdl = {
+      data: roleOptions,
+    }
+    
+    const responseData = new SuccessException("Role ddl received", getRoleDdlData)
+
+    return res.send(responseData.getResponse)
+
   } catch (e: any) {
     let exception= new BasicErrorException(e.message);
     return res.status(400).send(exception.getResponse)
