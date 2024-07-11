@@ -17,8 +17,8 @@ export default interface Invoice{
     detail_invoices : {
       uid             : string,
       no_batch        : string,
-      expired_at      : Date | null,
-      count_box       : number,
+      expired_date    : Date | null,
+      qty_pcs         : number,
       qty_box         : number,
       price_box       : number,
       total_price     : number,

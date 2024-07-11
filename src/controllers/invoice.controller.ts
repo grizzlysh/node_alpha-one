@@ -127,9 +127,12 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
     try {
       
       let inputDetailInvoice: {
+        unique_uid      : string,
+        drug_uid        : string,
+        drug_name       : string,
         no_batch        : string,
-        expired_at      : string,
-        count_box       : number,
+        expired_date    : string,
+        qty_pcs         : number,
         qty_box         : number,
         price_box       : number,
         total_price     : number,
@@ -137,18 +140,17 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
         discount_nominal: number,
         ppn             : number,
         ppn_nominal     : number,
-        drug_uid        : string,
       }[] = JSON.parse(inputData.detail_invoices_json);      
 
       await prisma.$transaction( async (prisma) => {
         let invoice = await prisma.invoices.create({
           data: {
             no_invoice   : inputData.no_invoice,
-            invoice_date : inputData.invoice_date,
-            receive_date : inputData.receive_date,
+            invoice_date : moment(inputData.invoice_date, 'DD-MM-YYYY').tz('Asia/Jakarta').toDate(),
+            receive_date : moment(inputData.receive_date, 'DD-MM-YYYY').tz('Asia/Jakarta').toDate(),
             total_invoice: inputData.total_invoice,
             count_item   : inputData.count_item,
-            due_date     : inputData.due_date,
+            due_date     : moment(inputData.due_date, 'DD-MM-YYYY').tz('Asia/Jakarta').toDate(),
             status       : inputData.status,
             total_pay    : inputData.total_pay,
             distributors : {
@@ -156,8 +158,8 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
                 uid: inputData.distributor_uid,
               }
             },
-            created_at   : moment().tz('Asia/Jakarta').format().toString(),
-            updated_at   : moment().tz('Asia/Jakarta').format().toString(),
+            created_at   : moment().tz('Asia/Jakarta').toDate(),
+            updated_at   : moment().tz('Asia/Jakarta').toDate(),
             createdby    : {
               connect: {
                 id: currentUser?.id
@@ -182,7 +184,7 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
           });
 
           if(!checkStock) {      
-            const total_qty    = (val.count_box * val.qty_box);
+            const total_qty    = (val.qty_pcs * val.qty_box);
             const price_buy    = (Business.PPN * val.price_box) + val.price_box;
             const price        = (0.3 * price_buy)+price_buy;
             const price_manual = 0;
@@ -214,7 +216,7 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
             })
           }
           else {
-            const total_qty      = checkStock.total_qty + (val.count_box * val.qty_box);
+            const total_qty      = checkStock.total_qty + (val.qty_pcs * val.qty_box);
             const price_buy_temp = (Business.PPN * val.price_box) + val.price_box;
             const price_buy      = ((checkStock.price_buy || 0) > price_buy_temp) ? checkStock.price_buy : price_buy_temp;
             const price          = (0.3 * (price_buy || 0)) + (price_buy || 0);
@@ -241,8 +243,8 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
           let detailInvoice = await prisma.detail_invoices.create({
             data: {
               no_batch        : val.no_batch,
-              expired_at      : val.expired_at,
-              count_box       : val.count_box,
+              expired_date    : val.expired_date,
+              qty_pcs         : val.qty_pcs,
               qty_box         : val.qty_box,
               price_box       : val.price_box,
               total_price     : val.total_price,
@@ -250,7 +252,7 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
               discount_nominal: val.discount_nominal,
               ppn             : val.ppn,
               ppn_nominal     : val.ppn_nominal,
-              drugs : {
+              drugs           : {
                 connect: {
                   uid: val.drug_uid,
                 }
@@ -276,7 +278,7 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
           });
 
           let barcodeStock = await generateBarcodeStock();
-          let totalQty     = (val.qty_box * val.count_box);
+          let totalQty     = (val.qty_box * val.qty_pcs);
 
           let detailStock  = await prisma.detail_stocks.create({
             data: {
@@ -290,15 +292,15 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
                   id: detailInvoice.id,
                 }
               },
-              qty_pcs    : totalQty,
-              qty_box    : val.count_box,
-              expired_at : val.expired_at,
-              no_barcode : barcodeStock,
-              no_batch   : val.no_batch,
-              is_initiate: false,
-              created_at : moment().tz('Asia/Jakarta').format().toString(),
-              updated_at : moment().tz('Asia/Jakarta').format().toString(),
-              createdby  : {
+              qty_pcs     : totalQty,
+              qty_box     : val.qty_box,
+              expired_date: val.expired_date,
+              no_barcode  : barcodeStock,
+              no_batch    : val.no_batch,
+              is_initiate : false,
+              created_at  : moment().tz('Asia/Jakarta').format().toString(),
+              updated_at  : moment().tz('Asia/Jakarta').format().toString(),
+              createdby   : {
                 connect: {
                   id: currentUser?.id,
                 }
@@ -403,8 +405,8 @@ export async function getInvoice(req: RequestGetInvoice, res: Response): Promise
           select : {
             uid             : true,
             no_batch        : true,
-            expired_at      : true,
-            count_box       : true,
+            expired_date    : true,
+            qty_pcs         : true,
             qty_box         : true,
             price_box       : true,
             total_price     : true,
@@ -503,8 +505,8 @@ export async function getInvoiceById(req: RequestGetInvoiceByID, res: Response):
           select : {
             uid             : true,
             no_batch        : true,
-            expired_at      : true,
-            count_box       : true,
+            expired_date    : true,
+            qty_pcs         : true,
             qty_box         : true,
             price_box       : true,
             total_price     : true,
@@ -686,8 +688,8 @@ export async function editInvoice(req: RequestEditInvoice, res: Response): Promi
       // let editDetailInvoice: {
       //   detail_invoice_uid: string,
       //   no_batch          : string,
-      //   expired_at        : string,
-      //   count_box         : number,
+      //   expired_date        : string,
+      //   qty_pcs         : number,
       //   qty_box           : number,
       //   price_box         : number,
       //   total_price       : number,
@@ -735,8 +737,8 @@ export async function editInvoice(req: RequestEditInvoice, res: Response): Promi
         //     },
         //     data: {
         //       no_batch        : val.no_batch,
-        //       expired_at      : val.expired_at,
-        //       count_box       : val.count_box,
+        //       expired_date      : val.expired_date,
+        //       qty_pcs       : val.qty_pcs,
         //       qty_box         : val.qty_box,
         //       price_box       : val.price_box,
         //       total_price     : val.total_price,
@@ -887,7 +889,7 @@ export async function deleteInvoice(req: RequestDeleteInvoice, res: Response): P
                 }
               },
               status           : 'DELETED',
-              qty_pcs          : (val.count_box * val.qty_box),
+              qty_pcs          : (val.qty_pcs * val.qty_box),
               created_at       : moment().tz('Asia/Jakarta').format().toString(),
               updated_at       : moment().tz('Asia/Jakarta').format().toString(),
               createdby        : {

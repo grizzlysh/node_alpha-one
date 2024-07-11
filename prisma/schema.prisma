@@ -328,8 +328,8 @@ model detail_invoices {
   invoice_id       Int
   drug_id          Int
   no_batch         String            @db.VarChar(191)
-  expired_at       DateTime?         @db.Date
-  count_box        Int
+  expired_date       DateTime?         @db.Date
+  qty_pcs        Int
   qty_box          Int
   price_box        Int
   total_price      Int
@@ -467,7 +467,7 @@ model detail_stocks {
   detail_invoice_id Int?             @unique
   qty_pcs           Int
   qty_box           Int?
-  expired_at        DateTime         @db.Date
+  expired_date        DateTime         @db.Date
   no_barcode        String           @db.VarChar(191)
   no_batch          String?          @db.VarChar(191)
   is_initiate       Boolean          @default(false)

@@ -181,8 +181,8 @@ export async function getTransactionInvoiceById(req: RequestGetTransactionInvoic
           select : {
             uid             : true,
             no_batch        : true,
-            expired_at      : true,
-            count_box       : true,
+            expired_date    : true,
+            qty_pcs         : true,
             qty_box         : true,
             price_box       : true,
             total_price     : true,

@@ -3,11 +3,11 @@ import { Request } from "express";
 interface RequestCreateInvoice extends Request {
   body: {
     no_invoice      : string,
-    invoice_date    : Date,
-    receive_date    : Date,
+    invoice_date    : string,
+    receive_date    : string,
     total_invoice   : number,
     count_item      : number,
-    due_date        : Date,
+    due_date        : string,
     status          : string,
     total_pay       : number,
     distributor_uid : string,
