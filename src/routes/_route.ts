@@ -11,6 +11,7 @@ import DrugRoutes from './drug.route';
 import FormulaRoutes from './formula.route';
 import DistributorRoutes from './distributor.route';
 import InvoiceRoutes from './invoice.route';
+import StockRoutes from './stock.route.';
 
 const MainRoutes = express.Router();
 
@@ -26,5 +27,6 @@ MainRoutes.use("/drug", DrugRoutes);
 MainRoutes.use("/formula", FormulaRoutes);
 MainRoutes.use("/distributor", DistributorRoutes);
 MainRoutes.use("/invoice", InvoiceRoutes);
+MainRoutes.use("/stock", StockRoutes);
 
 export default MainRoutes;

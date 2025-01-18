@@ -92,7 +92,7 @@ export async function createFormula(req: RequestCreateFormula, res: Response): P
       },
     })
 
-    const currentDate      = moment().tz('Asia/Jakarta').format('YYMM').toString();
+    const currentDate      = moment().tz('Asia/Jakarta').format();
     const currentNoFormula = currentDate+'00';
     const latestNoFormula  = await prisma.formulas.findFirst({
       where: {
@@ -131,8 +131,8 @@ export async function createFormula(req: RequestCreateFormula, res: Response): P
             no_barcode : barcodeFormula,
             price      : inputData.price,
             status     : inputData.status,
-            created_at : moment().tz('Asia/Jakarta').format().toString(),
-            updated_at : moment().tz('Asia/Jakarta').format().toString(),
+            created_at : moment().tz('Asia/Jakarta').format(),
+            updated_at : moment().tz('Asia/Jakarta').format(),
             createdby  : {
               connect: {
                 id: currentUser?.id,
@@ -160,8 +160,8 @@ export async function createFormula(req: RequestCreateFormula, res: Response): P
                 }
               },
               qty_pcs   : val.qty_pcs,
-              created_at: moment().tz('Asia/Jakarta').format().toString(),
-              updated_at: moment().tz('Asia/Jakarta').format().toString(),
+              created_at: moment().tz('Asia/Jakarta').format(),
+              updated_at: moment().tz('Asia/Jakarta').format(),
               createdby : {
                 connect: {
                   id: currentUser?.id,
@@ -450,7 +450,7 @@ export async function editFormula(req: RequestEditFormula, res: Response): Promi
             description: editData.description,
             price      : editData.price,
             status     : editData.status,
-            updated_at : moment().tz('Asia/Jakarta').format().toString(),
+            updated_at : moment().tz('Asia/Jakarta').format(),
             updatedby  : {
               connect : {
                 id: currentUser?.id,
@@ -472,7 +472,7 @@ export async function editFormula(req: RequestEditFormula, res: Response): Promi
         //         }
         //       },
         //       qty_pcs   : val.qty_pcs,
-        //       updated_at : moment().tz('Asia/Jakarta').format().toString(),
+        //       updated_at : moment().tz('Asia/Jakarta').format(),
         //       updatedby  : {
         //         connect : {
         //           uid: editData.current_user_uid,
@@ -537,8 +537,8 @@ export async function deleteFormula(req: RequestDeleteFormula, res: Response): P
             uid: formula_uid
           },
           data: {
-            updated_at: moment().tz('Asia/Jakarta').format().toString(),
-            deleted_at: moment().tz('Asia/Jakarta').format().toString(),
+            updated_at: moment().tz('Asia/Jakarta').format(),
+            deleted_at: moment().tz('Asia/Jakarta').format(),
             updatedby: {
               connect: {
                 id: currentUser?.id,
@@ -557,8 +557,8 @@ export async function deleteFormula(req: RequestDeleteFormula, res: Response): P
             formula_id: formula.id,
           },
           data:{
-            updated_at: moment().tz('Asia/Jakarta').format().toString(),
-            deleted_at: moment().tz('Asia/Jakarta').format().toString(),
+            updated_at: moment().tz('Asia/Jakarta').format(),
+            deleted_at: moment().tz('Asia/Jakarta').format(),
             updated_by: currentUser?.id,
             deleted_by: currentUser?.id,
           }

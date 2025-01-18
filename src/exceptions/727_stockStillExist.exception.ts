@@ -1,13 +1,13 @@
 import HttpException from "../interfaces/httpException.interface"
 import ResponseService from "../interfaces/responseService.interface";
 
-class StockNotFoundException implements HttpException {
+class StockStillExistException implements HttpException {
   status : number;
   message: string;
 
   constructor(inputMessage?: string) {
     this.status  = 727;
-    this.message = inputMessage ? inputMessage : "Stock not found";
+    this.message = inputMessage ? inputMessage : "Stock still exist";
   }
 
   get getResponse() {
@@ -23,5 +23,5 @@ class StockNotFoundException implements HttpException {
   }
 }
 
-export default StockNotFoundException;
+export default StockStillExistException;
 

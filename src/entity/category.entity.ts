@@ -1,5 +1,5 @@
 
-export default interface Category{
+export default interface Category {
   uid         : string,
   name        : string,
   created_at  : Date | null,

@@ -102,8 +102,8 @@ export async function createTransactionInvoice(req: RequestCreateTransactionInvo
             },
             pay_date  : payData.pay_date,
             total_pay : payData.total_pay,
-            created_at: moment().tz('Asia/Jakarta').format().toString(),
-            updated_at: moment().tz('Asia/Jakarta').format().toString(),
+            created_at: moment().tz('Asia/Jakarta').format(),
+            updated_at: moment().tz('Asia/Jakarta').format(),
             createdby : {
               connect: {
                 uid: payData.current_user_uid,
@@ -123,7 +123,7 @@ export async function createTransactionInvoice(req: RequestCreateTransactionInvo
           },
           data: {
             total_pay : totalPayment,
-            updated_at: moment().tz('Asia/Jakarta').format().toString(),
+            updated_at: moment().tz('Asia/Jakarta').format(),
             updatedby : {
               connect : {
                 id: currentUser?.id
@@ -295,8 +295,8 @@ export async function deleteTransactionInvoice(req: RequestDeleteTransactionInvo
             uid: transaction_invoice_uid
           },
           data: {
-            updated_at: moment().tz('Asia/Jakarta').format().toString(),
-            deleted_at: moment().tz('Asia/Jakarta').format().toString(),
+            updated_at: moment().tz('Asia/Jakarta').format(),
+            deleted_at: moment().tz('Asia/Jakarta').format(),
             updatedby : {
               connect: {
                 id: currentUser?.id
@@ -316,8 +316,8 @@ export async function deleteTransactionInvoice(req: RequestDeleteTransactionInvo
           },
           data: {
             total_pay : updatedPay,
-            updated_at: moment().tz('Asia/Jakarta').format().toString(),
-            deleted_at: moment().tz('Asia/Jakarta').format().toString(),
+            updated_at: moment().tz('Asia/Jakarta').format(),
+            deleted_at: moment().tz('Asia/Jakarta').format(),
             updatedby : {
               connect: {
                 id: currentUser?.id

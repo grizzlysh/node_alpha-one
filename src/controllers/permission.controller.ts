@@ -85,8 +85,8 @@ export async function createPermission(req: RequestCreatePermission, res: Respon
           name        : nameFormat,
           display_name: inputData.display_name,
           description : inputData.description,
-          created_at  : moment().tz('Asia/Jakarta').format().toString(),
-          updated_at  : moment().tz('Asia/Jakarta').format().toString(),
+          created_at  : moment().tz('Asia/Jakarta').format(),
+          updated_at  : moment().tz('Asia/Jakarta').format(),
           createdby   : {
             connect: {
               id: currentUser?.id
@@ -326,7 +326,7 @@ export async function editPermission(req: RequestEditPermission, res: Response):
           name             : nameFormat,
           display_name     : editData.display_name,
           description      : editData.description,
-          updated_at       : moment().tz('Asia/Jakarta').format().toString(),
+          updated_at       : moment().tz('Asia/Jakarta').format(),
           updatedby        : {
             connect : {
               id: currentUser?.id
@@ -409,8 +409,8 @@ export async function deletePermission(req: RequestDeletePermission, res: Respon
           uid: permission_uid
         },
         data: {
-          updated_at: moment().tz('Asia/Jakarta').format().toString(),
-          deleted_at: moment().tz('Asia/Jakarta').format().toString(),
+          updated_at: moment().tz('Asia/Jakarta').format(),
+          deleted_at: moment().tz('Asia/Jakarta').format(),
           updatedby: {
             connect: {
               id: currentUser?.id

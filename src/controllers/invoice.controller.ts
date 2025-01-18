@@ -3,15 +3,14 @@ import Joi from 'joi';
 import { Response } from "express";
 import { PrismaClient, Prisma } from '@prisma/client';
 
-import Business from '../constants/business.constant';
 import { generateBarcodeStock } from '../utils/barcode.util';
 import { getPagination, getPagingData } from '../utils/pagination.util';
 
 import SuccessException from '../exceptions/200_success.exception';
 import BasicErrorException from '../exceptions/700_basicError.exception';
 import InvalidInputException from '../exceptions/701_invalidInput.exception';
-import StockNotFoundException from '../exceptions/727_stockNotFound.exception';
-import StockStillExistException from '../exceptions/728_stockStillExist.exception';
+import StockNotFoundException from '../exceptions/726_stockNotFound.exception';
+import StockStillExistException from '../exceptions/727_stockStillExist.exception';
 import InvoiceNotFoundException from '../exceptions/723_invoiceNotFound.exception';
 import InvoiceAlreadyExistException from '../exceptions/722_invoiceAlreadyExist.exception';
 
@@ -22,6 +21,7 @@ import RequestDeleteInvoice from '../interfaces/invoice/requestDeleteInvoice.int
 import RequestCreateInvoice from '../interfaces/invoice/requestCreateInvoice.interface';
 import RequestGetInvoiceByID from '../interfaces/invoice/requestGetInvoiceByID.interface';
 import ResponseGetInvoiceByID from '../interfaces/invoice/responseGetInvoiceByID.interface';
+import { getBusinessParameter, getCurrentUser } from '../utils/business.util';
 
 const prisma = new PrismaClient({
   log: ['query'],
@@ -46,7 +46,7 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
         'string.min'  : `Receive Date should have a minimum length of 1`,
         'any.required': `Receive Date is a required field`
       }),
-      total_invoice: Joi.number().required().messages({
+      total_invoice: Joi.number().precision(2).required().messages({
         'string.empty': `Total Invoice cannot be an empty field`,
         'any.required': `Total Invoice is a required field`
       }),
@@ -63,7 +63,7 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
         'string.empty': `Status cannot be an empty field`,
         'any.required': `STatus is a required field`
       }),
-      total_pay: Joi.number().required().messages({
+      total_pay: Joi.number().precision(2).required().messages({
         'string.empty': `Total Pay cannot be an empty field`,
         'any.required': `Total Pay is a required field`
       }),
@@ -115,14 +115,16 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
       return res.status(400).send(exception.getResponse);
     }
 
-    const currentUser = await prisma.users.findFirst({
-      where: {
-        AND: [
-          {uid: inputData.current_user_uid,},
-          {deleted_at: null,},
-        ]
-      },
-    })
+    const currentUser       = await getCurrentUser(inputData.current_user_uid);
+    const businessParameter = await getBusinessParameter();
+    // const currentUser = await prisma.users.findFirst({
+    //   where: {
+    //     AND: [
+    //       {uid: inputData.current_user_uid,},
+    //       {deleted_at: null,},
+    //     ]
+    //   },
+    // })
 
     try {
       
@@ -140,17 +142,20 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
         discount_nominal: number,
         ppn             : number,
         ppn_nominal     : number,
-      }[] = JSON.parse(inputData.detail_invoices_json);      
+      }[] = JSON.parse(inputData.detail_invoices_json);    
+      
+      // return res.status(400).send(inputDetailInvoice)
 
-      await prisma.$transaction( async (prisma) => {
-        let invoice = await prisma.invoices.create({
+      await prisma.$transaction( async (trx) => {
+        let invoice = await trx.invoices.create({
           data: {
             no_invoice   : inputData.no_invoice,
-            invoice_date : moment(inputData.invoice_date, 'DD-MM-YYYY').tz('Asia/Jakarta').toDate(),
-            receive_date : moment(inputData.receive_date, 'DD-MM-YYYY').tz('Asia/Jakarta').toDate(),
+            // invoice_date : moment.utc(inputData.invoice_date, 'DD/MM/YYYY').toDate(),
+            invoice_date : moment.utc(inputData.invoice_date, 'DD/MM/YYYY').toDate(),
+            receive_date : moment.utc(inputData.receive_date, 'DD/MM/YYYY').toDate(),
             total_invoice: inputData.total_invoice,
             count_item   : inputData.count_item,
-            due_date     : moment(inputData.due_date, 'DD-MM-YYYY').tz('Asia/Jakarta').toDate(),
+            due_date     : moment.utc(inputData.due_date, 'DD/MM/YYYY').toDate(),
             status       : inputData.status,
             total_pay    : inputData.total_pay,
             distributors : {
@@ -158,8 +163,8 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
                 uid: inputData.distributor_uid,
               }
             },
-            created_at   : moment().tz('Asia/Jakarta').toDate(),
-            updated_at   : moment().tz('Asia/Jakarta').toDate(),
+            created_at   : moment().tz('Asia/Jakarta').format(),
+            updated_at   : moment().tz('Asia/Jakarta').format(),
             createdby    : {
               connect: {
                 id: currentUser?.id
@@ -173,7 +178,8 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
           },
         });
 
-        inputDetailInvoice.forEach( async (val) => {
+        // inputDetailInvoice.forEach( async (val) => {
+        for (const val of inputDetailInvoice) {
 
           let checkStock = await prisma.stocks.findFirst({
             where: {
@@ -185,11 +191,11 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
 
           if(!checkStock) {      
             const total_qty    = (val.qty_pcs * val.qty_box);
-            const price_buy    = (Business.PPN * val.price_box) + val.price_box;
-            const price        = (0.3 * price_buy)+price_buy;
+            const price_buy    = (businessParameter.ppn/100 * val.price_box) + val.price_box;
+            const price        = Math.round((businessParameter.margin/100 * price_buy)+price_buy);
             const price_manual = 0;
 
-            checkStock = await prisma.stocks.create({
+            checkStock = await trx.stocks.create({
               data: {
                 total_qty   : total_qty,
                 price       : price,
@@ -200,8 +206,8 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
                     uid: val.drug_uid,
                   }
                 },
-                created_at: moment().tz('Asia/Jakarta').format().toString(),
-                updated_at: moment().tz('Asia/Jakarta').format().toString(),
+                created_at: moment().tz('Asia/Jakarta').format(),
+                updated_at: moment().tz('Asia/Jakarta').format(),
                 createdby : {
                   connect: {
                     uid: inputData.current_user_uid,
@@ -217,12 +223,13 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
           }
           else {
             const total_qty      = checkStock.total_qty + (val.qty_pcs * val.qty_box);
-            const price_buy_temp = (Business.PPN * val.price_box) + val.price_box;
-            const price_buy      = ((checkStock.price_buy || 0) > price_buy_temp) ? checkStock.price_buy : price_buy_temp;
-            const price          = (0.3 * (price_buy || 0)) + (price_buy || 0);
+            const price_buy_temp = (businessParameter.ppn/100 * val.price_box) + val.price_box;
+            const price_buy_db   = checkStock.price_buy || 0;
+            const price_buy      = (price_buy_db > price_buy_temp) ? price_buy_db : price_buy_temp;
+            const price          = Math.round((businessParameter.margin/100 * price_buy)+price_buy);
             const price_manual   = checkStock.price_manual
 
-            await prisma.stocks.update({
+            await trx.stocks.update({
               where: {
                 id: checkStock.id
               },
@@ -230,7 +237,7 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
                 total_qty : total_qty,
                 price_buy : price_buy,
                 price     : price,
-                updated_at: moment().tz('Asia/Jakarta').format().toString(),
+                updated_at: moment().tz('Asia/Jakarta').format(),
                 updatedby : {
                   connect : {
                     id: currentUser?.id
@@ -239,11 +246,11 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
               }
             })
           }
-
-          let detailInvoice = await prisma.detail_invoices.create({
+          let detailInvoice = await trx.detail_invoices.create({
             data: {
               no_batch        : val.no_batch,
-              expired_date    : val.expired_date,
+              // expired_date    : val.expired_date,
+              expired_date    : moment.utc(val.expired_date, 'DD/MM/YYYY').toDate(),
               qty_pcs         : val.qty_pcs,
               qty_box         : val.qty_box,
               price_box       : val.price_box,
@@ -262,8 +269,8 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
                   id: invoice.id
                 }
               },
-              created_at: moment().tz('Asia/Jakarta').format().toString(),
-              updated_at: moment().tz('Asia/Jakarta').format().toString(),
+              created_at: moment().tz('Asia/Jakarta').format(),
+              updated_at: moment().tz('Asia/Jakarta').format(),
               createdby : {
                 connect: {
                   id: currentUser?.id
@@ -280,7 +287,8 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
           let barcodeStock = await generateBarcodeStock();
           let totalQty     = (val.qty_box * val.qty_pcs);
 
-          let detailStock  = await prisma.detail_stocks.create({
+
+          let detailStock  = await trx.detail_stocks.create({
             data: {
               stocks : {
                 connect: {
@@ -294,12 +302,12 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
               },
               qty_pcs     : totalQty,
               qty_box     : val.qty_box,
-              expired_date: val.expired_date,
+              expired_date: moment.utc(val.expired_date, 'DD/MM/YYYY').toDate(),
               no_barcode  : barcodeStock,
               no_batch    : val.no_batch,
               is_initiate : false,
-              created_at  : moment().tz('Asia/Jakarta').format().toString(),
-              updated_at  : moment().tz('Asia/Jakarta').format().toString(),
+              created_at  : moment().tz('Asia/Jakarta').format(),
+              updated_at  : moment().tz('Asia/Jakarta').format(),
               createdby   : {
                 connect: {
                   id: currentUser?.id,
@@ -313,7 +321,7 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
             }
           });
 
-          let historyStock = await prisma.history_stocks.create({
+          let historyStock = await trx.history_stocks.create({
             data: {
               stocks : {
                 connect: {
@@ -327,8 +335,8 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
               },
               status    : 'IN',
               qty_pcs   : detailStock.qty_pcs,
-              created_at: moment().tz('Asia/Jakarta').format().toString(),
-              updated_at: moment().tz('Asia/Jakarta').format().toString(),
+              created_at: moment().tz('Asia/Jakarta').format(),
+              updated_at: moment().tz('Asia/Jakarta').format(),
               createdby : {
                 connect: {
                   id: currentUser?.id
@@ -341,7 +349,7 @@ export async function createInvoice(req: RequestCreateInvoice, res: Response): P
               },
             }
           });
-        })
+        }
 
 
 
@@ -607,7 +615,7 @@ export async function editInvoice(req: RequestEditInvoice, res: Response): Promi
         'string.empty': `Status cannot be an empty field`,
         'any.required': `STatus is a required field`
       }),
-      total_pay: Joi.number().required().messages({
+      total_pay: Joi.number().precision(2).required().messages({
         'string.empty': `Total Pay cannot be an empty field`,
         'any.required': `Total Pay is a required field`
       }),
@@ -615,10 +623,10 @@ export async function editInvoice(req: RequestEditInvoice, res: Response): Promi
         'string.empty': `Distributor cannot be an empty field`,
         'any.required': `Distributor is a required field`
       }),
-      // detail_invoices: Joi.string().required().messages({
-      //   'string.empty': `Detail Invoice cannot be an empty field`,
-      //   'any.required': `Detail Invoice is a required field`
-      // }),
+      detail_invoices: Joi.string().required().messages({
+        'string.empty': `Detail Invoice cannot be an empty field`,
+        'any.required': `Detail Invoice is a required field`
+      }),
       current_user_uid: Joi.string().min(36).max(36).required().messages({
         'any.required': `Please try again`
       }),
@@ -641,7 +649,7 @@ export async function editInvoice(req: RequestEditInvoice, res: Response): Promi
       status              : req.body.status,
       total_pay           : req.body.total_pay,
       distributor_uid     : req.body.distributor_uid,
-      // detail_invoices_json: req.body.detail_invoices,
+      detail_invoices_json: req.body.detail_invoices,
       current_user_uid    : req.body.current_user_uid,
     }
     
@@ -674,45 +682,49 @@ export async function editInvoice(req: RequestEditInvoice, res: Response): Promi
       }
     }
 
-    const currentUser = await prisma.users.findFirst({
-      where: {
-        AND: [
-          {uid: editData.current_user_uid,},
-          {deleted_at: null,},
-        ]
-      },
-    })
+    const currentUser       = await getCurrentUser(editData.current_user_uid);
+    const businessParameter = await getBusinessParameter();
+    // const currentUser = await prisma.users.findFirst({
+    //   where: {
+    //     AND: [
+    //       {uid: editData.current_user_uid,},
+    //       {deleted_at: null,},
+    //     ]
+    //   },
+    // })
 
     try {
 
-      // let editDetailInvoice: {
-      //   detail_invoice_uid: string,
-      //   no_batch          : string,
-      //   expired_date        : string,
-      //   qty_pcs         : number,
-      //   qty_box           : number,
-      //   price_box         : number,
-      //   total_price       : number,
-      //   discount          : number,
-      //   discount_nominal  : number,
-      //   ppn               : number,
-      //   ppn_nominal       : number,
-      //   drug_uid          : string,
-      // }[] = JSON.parse(editData.detail_invoices_json);
+      let editDetailInvoice: {
+        unique_uid        : string,
+        detail_invoice_uid: string,
+        no_batch          : string,
+        expired_date      : string,
+        qty_pcs           : number,
+        qty_box           : number,
+        price_box         : number,
+        total_price       : number,
+        discount          : number,
+        discount_nominal  : number,
+        ppn               : number,
+        ppn_nominal       : number,
+        drug_uid          : string,
+        status            : string,
+      }[] = JSON.parse(editData.detail_invoices_json);
 
-      await prisma.$transaction( async (prisma) => {
-        
-        let invoice = await prisma.invoices.update({
+      await prisma.$transaction( async (trx) => {
+
+        let invoice = await trx.invoices.update({
           where: {
             uid: invoice_uid,
           },
           data: {
             no_invoice   : editData.no_invoice,
-            invoice_date : editData.invoice_date,
-            receive_date : editData.receive_date,
+            invoice_date : moment.utc(editData.invoice_date, 'DD/MM/YYYY').toDate(),
+            receive_date : moment.utc(editData.receive_date, 'DD/MM/YYYY').toDate(),
             total_invoice: editData.total_invoice,
             count_item   : editData.count_item,
-            due_date     : editData.due_date,
+            due_date     : moment.utc(editData.due_date, 'DD/MM/YYYY').toDate(),
             status       : editData.status,
             total_pay    : editData.total_pay,
             distributors : {
@@ -720,7 +732,7 @@ export async function editInvoice(req: RequestEditInvoice, res: Response): Promi
                 uid: editData.distributor_uid,
               }
             },
-            updated_at : moment().tz('Asia/Jakarta').format().toString(),
+            updated_at : moment().tz('Asia/Jakarta').format(),
             updatedby  : {
               connect : {
                 id: currentUser?.id
@@ -730,6 +742,180 @@ export async function editInvoice(req: RequestEditInvoice, res: Response): Promi
         });
 
         // update invoice detail
+        for (const val of editDetailInvoice) {
+
+          if (val.status == 'new') {
+            let checkStock = await prisma.stocks.findFirst({
+              where: {
+                drugs: {
+                  uid: val.drug_uid,
+                }
+              },
+            });
+  
+            if(!checkStock) {      
+              const total_qty    = (val.qty_pcs * val.qty_box);
+              const price_buy    = (businessParameter.ppn/100 * val.price_box) + val.price_box;
+              const price        = Math.round((businessParameter.margin/100 * price_buy)+price_buy);
+              const price_manual = 0;
+  
+  
+              checkStock = await trx.stocks.create({
+                data: {
+                  total_qty   : total_qty,
+                  price       : price,
+                  price_buy   : price_buy,
+                  price_manual: price_manual,
+                  drugs: {
+                    connect : {
+                      uid: val.drug_uid,
+                    }
+                  },
+                  created_at: moment().tz('Asia/Jakarta').format(),
+                  updated_at: moment().tz('Asia/Jakarta').format(),
+                  createdby : {
+                    connect: {
+                      uid: editData.current_user_uid,
+                    }
+                  },
+                  updatedby: {
+                    connect: {
+                      uid: editData.current_user_uid,
+                    }
+                  }, 
+                }
+              })
+            }
+            else {
+              const total_qty      = checkStock.total_qty + (val.qty_pcs * val.qty_box);
+              const price_buy_temp = (businessParameter.ppn/100 * val.price_box) + val.price_box;
+              const price_buy_db   = checkStock.price_buy || 0;
+              const price_buy      = (price_buy_db > price_buy_temp) ? price_buy_db : price_buy_temp;
+              const price          = Math.round((businessParameter.margin/100 * price_buy)+price_buy);
+              const price_manual   = checkStock.price_manual
+  
+              await trx.stocks.update({
+                where: {
+                  id: checkStock.id
+                },
+                data: {
+                  total_qty : total_qty,
+                  price_buy : price_buy,
+                  price     : price,
+                  updated_at: moment().tz('Asia/Jakarta').format(),
+                  updatedby : {
+                    connect : {
+                      id: currentUser?.id
+                    }
+                  },
+                }
+              })
+            }
+            let detailInvoice = await trx.detail_invoices.create({
+              data: {
+                no_batch        : val.no_batch,
+                // expired_date    : val.expired_date,
+                expired_date    : moment.utc(val.expired_date, 'DD/MM/YYYY').toDate(),
+                qty_pcs         : val.qty_pcs,
+                qty_box         : val.qty_box,
+                price_box       : val.price_box,
+                total_price     : val.total_price,
+                discount        : val.discount,
+                discount_nominal: val.discount_nominal,
+                ppn             : val.ppn,
+                ppn_nominal     : val.ppn_nominal,
+                drugs           : {
+                  connect: {
+                    uid: val.drug_uid,
+                  }
+                },
+                invoices : {
+                  connect: {
+                    id: invoice.id
+                  }
+                },
+                created_at: moment().tz('Asia/Jakarta').format(),
+                updated_at: moment().tz('Asia/Jakarta').format(),
+                createdby : {
+                  connect: {
+                    id: currentUser?.id
+                  }
+                },
+                updatedby : {
+                  connect: {
+                    id: currentUser?.id
+                  }
+                },
+              }
+            });
+  
+            let barcodeStock = await generateBarcodeStock();
+            let totalQty     = (val.qty_box * val.qty_pcs);
+  
+  
+            let detailStock  = await trx.detail_stocks.create({
+              data: {
+                stocks : {
+                  connect: {
+                    id: checkStock.id,
+                  }
+                },
+                detail_invoices: {
+                  connect: {
+                    id: detailInvoice.id,
+                  }
+                },
+                qty_pcs     : totalQty,
+                qty_box     : val.qty_box,
+                expired_date: moment.utc(val.expired_date, 'DD/MM/YYYY').toDate(),
+                no_barcode  : barcodeStock,
+                no_batch    : val.no_batch,
+                is_initiate : false,
+                created_at  : moment().tz('Asia/Jakarta').format(),
+                updated_at  : moment().tz('Asia/Jakarta').format(),
+                createdby   : {
+                  connect: {
+                    id: currentUser?.id,
+                  }
+                },
+                updatedby : {
+                  connect: {
+                    id: currentUser?.id,
+                  }
+                },
+              }
+            });
+  
+            let historyStock = await trx.history_stocks.create({
+              data: {
+                stocks : {
+                  connect: {
+                    id: checkStock.id,
+                  }
+                },
+                detail_invoices: {
+                  connect: {
+                    id: detailInvoice.id,
+                  }
+                },
+                status    : 'IN',
+                qty_pcs   : detailStock.qty_pcs,
+                created_at: moment().tz('Asia/Jakarta').format(),
+                updated_at: moment().tz('Asia/Jakarta').format(),
+                createdby : {
+                  connect: {
+                    id: currentUser?.id
+                  }
+                },
+                updatedby : {
+                  connect: {
+                    id: currentUser?.id
+                  }
+                },
+              }
+            });
+          }
+        }
         // editDetailInvoice.forEach( async (val) => {
         //   await prisma.detail_invoices.update({
         //     where : {
@@ -848,8 +1034,8 @@ export async function deleteInvoice(req: RequestDeleteInvoice, res: Response): P
             uid: invoice_uid
           },
           data: {
-            updated_at: moment().tz('Asia/Jakarta').format().toString(),
-            deleted_at: moment().tz('Asia/Jakarta').format().toString(),
+            updated_at: moment().tz('Asia/Jakarta').format(),
+            deleted_at: moment().tz('Asia/Jakarta').format(),
             updatedby: {
               connect: {
                 id: currentUser?.id
@@ -868,8 +1054,8 @@ export async function deleteInvoice(req: RequestDeleteInvoice, res: Response): P
             invoice_id: invoice.id,
           },
           data: {
-            updated_at: moment().tz('Asia/Jakarta').format().toString(),
-            deleted_at: moment().tz('Asia/Jakarta').format().toString(),
+            updated_at: moment().tz('Asia/Jakarta').format(),
+            deleted_at: moment().tz('Asia/Jakarta').format(),
             updated_by: currentUser?.id,
             deleted_by: currentUser?.id,
           }
@@ -890,8 +1076,8 @@ export async function deleteInvoice(req: RequestDeleteInvoice, res: Response): P
               },
               status           : 'DELETED',
               qty_pcs          : (val.qty_pcs * val.qty_box),
-              created_at       : moment().tz('Asia/Jakarta').format().toString(),
-              updated_at       : moment().tz('Asia/Jakarta').format().toString(),
+              created_at       : moment().tz('Asia/Jakarta').format(),
+              updated_at       : moment().tz('Asia/Jakarta').format(),
               createdby        : {
                 connect: {
                   id: currentUser?.id

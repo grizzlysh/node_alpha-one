@@ -144,8 +144,8 @@ export async function createRole(req: RequestCreateRole, res: Response): Promise
               // ...(permissionList ? permissionList : {})
             // ]
           },
-          created_at  : moment().tz('Asia/Jakarta').format().toString(),
-          updated_at  : moment().tz('Asia/Jakarta').format().toString(),
+          created_at  : moment().tz('Asia/Jakarta').format(),
+          updated_at  : moment().tz('Asia/Jakarta').format(),
           createdby   : {
             connect: {
               id: currentUser?.id
@@ -450,7 +450,7 @@ export async function editRole(req: RequestEditRole, res: Response): Promise<Res
           name             : nameFormat,
           display_name     : editData.display_name,
           description      : editData.description,
-          updated_at       : moment().tz('Asia/Jakarta').format().toString(),
+          updated_at       : moment().tz('Asia/Jakarta').format(),
           updatedby        : {
             connect : {
               id: currentUser?.id
@@ -539,8 +539,8 @@ export async function deleteRole(req: RequestDeleteRole, res: Response): Promise
           uid: role_uid
         },
         data: {
-          updated_at: moment().tz('Asia/Jakarta').format().toString(),
-          deleted_at: moment().tz('Asia/Jakarta').format().toString(),
+          updated_at: moment().tz('Asia/Jakarta').format(),
+          deleted_at: moment().tz('Asia/Jakarta').format(),
           updatedby: {
             connect: {
               id: currentUser?.id

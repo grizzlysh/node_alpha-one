@@ -1,3 +1,5 @@
+export type sortPage = 'asc' | 'desc';
+
 
 export const getPagination = (page: any, size: any) => {
   const limit  = size ? +size : 3;

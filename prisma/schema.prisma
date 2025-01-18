@@ -10,11 +10,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model business_parameters {
+  id           Int       @id @default(autoincrement())
+  uid          String    @unique @default(uuid()) @db.Uuid
+  name         String    @unique @db.VarChar(191)
+  display_name String    @unique @db.VarChar(191)
+  value        String    @unique @db.VarChar(191)
+  created_at   DateTime  @db.Timestamptz(0)
+  updated_at   DateTime  @db.Timestamptz(0)
+  deleted_at   DateTime? @db.Timestamptz(0)
+  created_by   Int?
+  updated_by   Int?
+  deleted_by   Int?
+  createdby    users?    @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby    users?    @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby    users?    @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
+}
+
 model menus {
   id         Int       @id @default(autoincrement())
   name       String    @unique @db.VarChar(19)
-  created_at DateTime? @db.Timestamp(0)
-  updated_at DateTime? @db.Timestamp(0)
+  created_at DateTime? @db.Timestamptz(0)
+  updated_at DateTime? @db.Timestamptz(0)
 }
 
 model permission_role {
@@ -36,9 +53,9 @@ model permissions {
   name            String            @unique @db.VarChar(191)
   display_name    String            @unique @db.VarChar(191)
   description     String?           @db.Text
-  created_at      DateTime          @db.Timestamp(0)
-  updated_at      DateTime          @db.Timestamp(0)
-  deleted_at      DateTime?         @db.Timestamp(0)
+  created_at      DateTime          @db.Timestamptz(0)
+  updated_at      DateTime          @db.Timestamptz(0)
+  deleted_at      DateTime?         @db.Timestamptz(0)
   created_by      Int?
   updated_by      Int?
   deleted_by      Int?
@@ -54,9 +71,9 @@ model roles {
   name            String            @unique @db.VarChar(191)
   display_name    String            @db.VarChar(191)
   description     String?           @db.Text
-  created_at      DateTime          @db.Timestamp(0)
-  updated_at      DateTime          @db.Timestamp(0)
-  deleted_at      DateTime?         @db.Timestamp(0)
+  created_at      DateTime          @db.Timestamptz(0)
+  updated_at      DateTime          @db.Timestamptz(0)
+  deleted_at      DateTime?         @db.Timestamptz(0)
   created_by      Int?
   updated_by      Int?
   deleted_by      Int?
@@ -74,11 +91,11 @@ model users {
   name                    String                  @db.VarChar(191)
   sex                     String                  @db.VarChar(191)
   email                   String                  @unique @db.VarChar(191)
-  email_verified_at       DateTime?               @db.Timestamp(0)
+  email_verified_at       DateTime?               @db.Timestamptz(0)
   password                String                  @db.VarChar(191)
-  created_at              DateTime?               @db.Timestamp(0)
-  updated_at              DateTime?               @db.Timestamp(0)
-  deleted_at              DateTime?               @db.Timestamp(0)
+  created_at              DateTime?               @db.Timestamptz(0)
+  updated_at              DateTime?               @db.Timestamptz(0)
+  deleted_at              DateTime?               @db.Timestamptz(0)
   role_id                 Int
   created_by              Int?
   updated_by              Int?
@@ -90,6 +107,9 @@ model users {
   users_c                 users[]                 @relation("user_created")
   users_u                 users[]                 @relation("user_updated")
   users_d                 users[]                 @relation("user_deleted")
+  business_parameters_c   business_parameters[]   @relation("created_by")
+  business_parameters_u   business_parameters[]   @relation("updated_by")
+  business_parameters_d   business_parameters[]   @relation("deleted_by")
   permissions_c           permissions[]           @relation("created_by")
   permissions_u           permissions[]           @relation("updated_by")
   permissions_d           permissions[]           @relation("deleted_by")
@@ -159,9 +179,9 @@ model shapes {
   id         Int       @id @default(autoincrement())
   uid        String    @unique @default(uuid()) @db.Uuid
   name       String    @db.VarChar(200)
-  created_at DateTime  @db.Timestamp(0)
-  updated_at DateTime  @db.Timestamp(0)
-  deleted_at DateTime? @db.Timestamp(0)
+  created_at DateTime  @db.Timestamptz(0)
+  updated_at DateTime  @db.Timestamptz(0)
+  deleted_at DateTime? @db.Timestamptz(0)
   created_by Int
   updated_by Int
   deleted_by Int?
@@ -175,9 +195,9 @@ model categories {
   id         Int       @id @default(autoincrement())
   uid        String    @unique @default(uuid()) @db.Uuid
   name       String    @db.VarChar(200)
-  created_at DateTime  @db.Timestamp(0)
-  updated_at DateTime  @db.Timestamp(0)
-  deleted_at DateTime? @db.Timestamp(0)
+  created_at DateTime  @db.Timestamptz(0)
+  updated_at DateTime  @db.Timestamptz(0)
+  deleted_at DateTime? @db.Timestamptz(0)
   created_by Int
   updated_by Int
   deleted_by Int?
@@ -191,9 +211,9 @@ model therapy_classes {
   id         Int       @id @default(autoincrement())
   uid        String    @unique @default(uuid()) @db.Uuid
   name       String    @db.VarChar(200)
-  created_at DateTime  @db.Timestamp(0)
-  updated_at DateTime  @db.Timestamp(0)
-  deleted_at DateTime? @db.Timestamp(0)
+  created_at DateTime  @db.Timestamptz(0)
+  updated_at DateTime  @db.Timestamptz(0)
+  deleted_at DateTime? @db.Timestamptz(0)
   created_by Int
   updated_by Int
   deleted_by Int?
@@ -211,10 +231,10 @@ model drugs {
   category_id           Int
   therapy_class_id      Int
   description           String?
-  status                Boolean @default(false)
-  created_at            DateTime                @db.Timestamp(0)
-  updated_at            DateTime                @db.Timestamp(0)
-  deleted_at            DateTime?               @db.Timestamp(0)
+  status                Boolean                 @default(false)
+  created_at            DateTime                @db.Timestamptz(0)
+  updated_at            DateTime                @db.Timestamptz(0)
+  deleted_at            DateTime?               @db.Timestamptz(0)
   created_by            Int
   updated_by            Int
   deleted_by            Int?
@@ -237,11 +257,11 @@ model formulas {
   no_formula      String            @db.VarChar(191)
   no_barcode      String            @db.VarChar(191)
   price           Int
-  status          Boolean @default(false)
+  status          Boolean           @default(false)
   description     String?           @db.Text
-  created_at      DateTime          @db.Timestamp(0)
-  updated_at      DateTime          @db.Timestamp(0)
-  deleted_at      DateTime?         @db.Timestamp(0)
+  created_at      DateTime          @db.Timestamptz(0)
+  updated_at      DateTime          @db.Timestamptz(0)
+  deleted_at      DateTime?         @db.Timestamptz(0)
   created_by      Int
   updated_by      Int
   deleted_by      Int?
@@ -259,9 +279,9 @@ model detail_formulas {
   formula_id Int
   drug_id    Int
   qty_pcs    Int
-  created_at DateTime  @db.Timestamp(0)
-  updated_at DateTime  @db.Timestamp(0)
-  deleted_at DateTime? @db.Timestamp(0)
+  created_at DateTime  @db.Timestamptz(0)
+  updated_at DateTime  @db.Timestamptz(0)
+  deleted_at DateTime? @db.Timestamptz(0)
   created_by Int
   updated_by Int
   deleted_by Int?
@@ -280,11 +300,11 @@ model distributors {
   phone           String            @db.VarChar(50)
   no_permit       String            @db.VarChar(50)
   contact_person  String            @db.VarChar(50)
-  status          Boolean @default(false)
+  status          Boolean           @default(false)
   description     String?           @db.Text
-  created_at      DateTime          @db.Timestamp(0)
-  updated_at      DateTime          @db.Timestamp(0)
-  deleted_at      DateTime?         @db.Timestamp(0)
+  created_at      DateTime          @db.Timestamptz(0)
+  updated_at      DateTime          @db.Timestamptz(0)
+  deleted_at      DateTime?         @db.Timestamptz(0)
   created_by      Int
   updated_by      Int
   deleted_by      Int?
@@ -302,14 +322,14 @@ model invoices {
   no_invoice           String                 @db.VarChar(191)
   invoice_date         DateTime               @db.Date
   receive_date         DateTime               @db.Date
-  total_invoice        Int
+  total_invoice        Float
   count_item           Int
   due_date             DateTime               @db.Date
   status               String                 @db.VarChar(191)
-  total_pay            Int
-  created_at           DateTime               @db.Timestamp(0)
-  updated_at           DateTime               @db.Timestamp(0)
-  deleted_at           DateTime?              @db.Timestamp(0)
+  total_pay            Float
+  created_at           DateTime               @db.Timestamptz(0)
+  updated_at           DateTime               @db.Timestamptz(0)
+  deleted_at           DateTime?              @db.Timestamptz(0)
   created_by           Int
   updated_by           Int
   deleted_by           Int?
@@ -328,18 +348,18 @@ model detail_invoices {
   invoice_id       Int
   drug_id          Int
   no_batch         String            @db.VarChar(191)
-  expired_date       DateTime?         @db.Date
-  qty_pcs        Int
+  expired_date     DateTime?         @db.Date
+  qty_pcs          Int
   qty_box          Int
-  price_box        Int
-  total_price      Int
+  price_box        Float
+  total_price      Float
   discount         Float
-  discount_nominal Int
-  ppn              Int
-  ppn_nominal      Int
-  created_at       DateTime          @db.Timestamp(0)
-  updated_at       DateTime          @db.Timestamp(0)
-  deleted_at       DateTime?         @db.Timestamp(0)
+  discount_nominal Float
+  ppn              Float
+  ppn_nominal      Float
+  created_at       DateTime          @db.Timestamptz(0)
+  updated_at       DateTime          @db.Timestamptz(0)
+  deleted_at       DateTime?         @db.Timestamptz(0)
   created_by       Int
   updated_by       Int
   deleted_by       Int?
@@ -358,10 +378,10 @@ model transaction_invoices {
   uid        String    @unique @default(uuid()) @db.Uuid
   invoice_id Int
   pay_date   DateTime  @db.Date
-  total_pay  Int
-  created_at DateTime  @db.Timestamp(0)
-  updated_at DateTime  @db.Timestamp(0)
-  deleted_at DateTime? @db.Timestamp(0)
+  total_pay  Float
+  created_at DateTime  @db.Timestamptz(0)
+  updated_at DateTime  @db.Timestamptz(0)
+  deleted_at DateTime? @db.Timestamptz(0)
   created_by Int
   updated_by Int
   deleted_by Int?
@@ -378,14 +398,14 @@ model return_invoices {
   invoice_id        Int
   detail_invoice_id Int
   return_date       DateTime?        @db.Date
-  qty_box_return        Int
-  qty_pcs_return        Int
-  total_return      Int
+  qty_box_return    Int
+  qty_pcs_return    Int
+  total_return      Float
   status            String           @db.VarChar(191)
   confirm_date      DateTime?        @db.Date
-  created_at        DateTime         @db.Timestamp(0)
-  updated_at        DateTime         @db.Timestamp(0)
-  deleted_at        DateTime?        @db.Timestamp(0)
+  created_at        DateTime         @db.Timestamptz(0)
+  updated_at        DateTime         @db.Timestamptz(0)
+  deleted_at        DateTime?        @db.Timestamptz(0)
   created_by        Int
   updated_by        Int
   deleted_by        Int?
@@ -405,9 +425,9 @@ model order_invoices {
   no_order              String                  @db.VarChar(191)
   order_date            DateTime                @db.Date
   count_item            Int
-  created_at            DateTime                @db.Timestamp(0)
-  updated_at            DateTime                @db.Timestamp(0)
-  deleted_at            DateTime?               @db.Timestamp(0)
+  created_at            DateTime                @db.Timestamptz(0)
+  updated_at            DateTime                @db.Timestamptz(0)
+  deleted_at            DateTime?               @db.Timestamptz(0)
   created_by            Int
   updated_by            Int
   deleted_by            Int?
@@ -425,9 +445,9 @@ model detail_order_invoices {
   qty              Int
   unit             String         @db.VarChar(191)
   description      String?        @db.Text
-  created_at       DateTime       @db.Timestamp(0)
-  updated_at       DateTime       @db.Timestamp(0)
-  deleted_at       DateTime?      @db.Timestamp(0)
+  created_at       DateTime       @db.Timestamptz(0)
+  updated_at       DateTime       @db.Timestamptz(0)
+  deleted_at       DateTime?      @db.Timestamptz(0)
   created_by       Int
   updated_by       Int
   deleted_by       Int?
@@ -439,25 +459,25 @@ model detail_order_invoices {
 }
 
 model stocks {
-  id            Int             @id @default(autoincrement())
-  uid           String          @unique @default(uuid()) @db.Uuid
-  drug_id       Int
-  total_qty     Int
-  price         Int
-  price_buy     Int?
-  price_manual  Int             @default(0)
-  created_at    DateTime        @db.Timestamp(0)
-  updated_at    DateTime        @db.Timestamp(0)
-  deleted_at    DateTime?       @db.Timestamp(0)
-  created_by    Int
-  updated_by    Int
-  deleted_by    Int?
-  detail_stocks detail_stocks[]
+  id             Int              @id @default(autoincrement())
+  uid            String           @unique @default(uuid()) @db.Uuid
+  drug_id        Int
+  total_qty      Int
+  price          Int
+  price_buy      Float?
+  price_manual   Int              @default(0)
+  created_at     DateTime         @db.Timestamptz(0)
+  updated_at     DateTime         @db.Timestamptz(0)
+  deleted_at     DateTime?        @db.Timestamptz(0)
+  created_by     Int
+  updated_by     Int
+  deleted_by     Int?
+  detail_stocks  detail_stocks[]
   history_stocks history_stocks[]
-  drugs         drugs           @relation(fields: [drug_id], references: [id], onDelete: Cascade)
-  createdby     users           @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
-  updatedby     users           @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
-  deletedby     users?          @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
+  drugs          drugs            @relation(fields: [drug_id], references: [id], onDelete: Cascade)
+  createdby      users            @relation(name: "created_by", fields: [created_by], references: [id], onDelete: NoAction)
+  updatedby      users            @relation(name: "updated_by", fields: [updated_by], references: [id], onDelete: NoAction)
+  deletedby      users?           @relation(name: "deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction)
 }
 
 model detail_stocks {
@@ -467,13 +487,13 @@ model detail_stocks {
   detail_invoice_id Int?             @unique
   qty_pcs           Int
   qty_box           Int?
-  expired_date        DateTime         @db.Date
+  expired_date      DateTime?         @db.Date
   no_barcode        String           @db.VarChar(191)
   no_batch          String?          @db.VarChar(191)
   is_initiate       Boolean          @default(false)
-  created_at        DateTime         @db.Timestamp(0)
-  updated_at        DateTime         @db.Timestamp(0)
-  deleted_at        DateTime?        @db.Timestamp(0)
+  created_at        DateTime         @db.Timestamptz(0)
+  updated_at        DateTime         @db.Timestamptz(0)
+  deleted_at        DateTime?        @db.Timestamptz(0)
   created_by        Int
   updated_by        Int
   deleted_by        Int?
@@ -498,9 +518,9 @@ model history_stocks {
   detail_sale_id    Int?
   return_invoice_id Int?
   reason            String?          @db.VarChar(191)
-  created_at        DateTime         @db.Timestamp(0)
-  updated_at        DateTime         @db.Timestamp(0)
-  deleted_at        DateTime?        @db.Timestamp(0)
+  created_at        DateTime         @db.Timestamptz(0)
+  updated_at        DateTime         @db.Timestamptz(0)
+  deleted_at        DateTime?        @db.Timestamptz(0)
   created_by        Int
   updated_by        Int
   deleted_by        Int?
@@ -526,9 +546,9 @@ model sales {
   customer_name     String?             @db.VarChar(191)
   customer_address  String?             @db.VarChar(191)
   customer_age      String?             @db.VarChar(191)
-  created_at        DateTime            @db.Timestamp(0)
-  updated_at        DateTime            @db.Timestamp(0)
-  deleted_at        DateTime?           @db.Timestamp(0)
+  created_at        DateTime            @db.Timestamptz(0)
+  updated_at        DateTime            @db.Timestamptz(0)
+  deleted_at        DateTime?           @db.Timestamptz(0)
   created_by        Int
   updated_by        Int
   deleted_by        Int?
@@ -550,9 +570,9 @@ model detail_sales {
   total_price     Int
   is_formula      Boolean          @default(false)
   formula_id      Int?
-  created_at      DateTime         @db.Timestamp(0)
-  updated_at      DateTime         @db.Timestamp(0)
-  deleted_at      DateTime?        @db.Timestamp(0)
+  created_at      DateTime         @db.Timestamptz(0)
+  updated_at      DateTime         @db.Timestamptz(0)
+  deleted_at      DateTime?        @db.Timestamptz(0)
   created_by      Int
   updated_by      Int
   deleted_by      Int?
@@ -571,9 +591,9 @@ model transaction_sales {
   sale_id    Int
   pay_date   DateTime  @db.Date
   total_pay  Int
-  created_at DateTime  @db.Timestamp(0)
-  updated_at DateTime  @db.Timestamp(0)
-  deleted_at DateTime? @db.Timestamp(0)
+  created_at DateTime  @db.Timestamptz(0)
+  updated_at DateTime  @db.Timestamptz(0)
+  deleted_at DateTime? @db.Timestamptz(0)
   created_by Int
   updated_by Int
   deleted_by Int?
@@ -593,7 +613,7 @@ model summary_transactions {
   credit           Int //piutang
   invoice          Int //invoice
   saving           Int //discount
-  created_at       DateTime  @db.Timestamp(0)
-  updated_at       DateTime  @db.Timestamp(0)
-  deleted_at       DateTime? @db.Timestamp(0)
+  created_at       DateTime  @db.Timestamptz(0)
+  updated_at       DateTime  @db.Timestamptz(0)
+  deleted_at       DateTime? @db.Timestamptz(0)
 }

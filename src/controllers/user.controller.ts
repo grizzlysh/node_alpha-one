@@ -188,8 +188,8 @@ export async function createUser(req: RequestCreateUser, res: Response): Promise
           sex       : inputData.sex,
           email     : inputData.email,
           password  : encryptPassword,
-          created_at: moment().tz('Asia/Jakarta').format().toString(),
-          updated_at: moment().tz('Asia/Jakarta').format().toString(),
+          created_at: moment().tz('Asia/Jakarta').format(),
+          updated_at: moment().tz('Asia/Jakarta').format(),
           createdby : {
             connect: {
               id: currentUser?.id
@@ -550,7 +550,7 @@ export async function editUser(req: RequestEditUser, res: Response): Promise<Res
           email            : editData.email,
           password         : encryptPassword,
           email_verified_at: isEmailUpdated ? null : checkUser?.email_verified_at,
-          updated_at       : moment().tz('Asia/Jakarta').format().toString(),
+          updated_at       : moment().tz('Asia/Jakarta').format(),
           updatedby        : {
             connect : {
               id: currentUser?.id
@@ -693,7 +693,7 @@ export async function resetPassword(req: RequestResetPassword, res: Response): P
         },
         data: {
           password  : encryptPassword,
-          updated_at: moment().tz('Asia/Jakarta').format().toString(),
+          updated_at: moment().tz('Asia/Jakarta').format(),
           updatedby : {
             connect : {
               id: currentUser?.id
@@ -800,8 +800,8 @@ export async function deleteUser(req: RequestDeleteUser, res: Response): Promise
           uid: user_uid
         },
         data: {
-          updated_at: moment().tz('Asia/Jakarta').format().toString(),
-          deleted_at: moment().tz('Asia/Jakarta').format().toString(),
+          updated_at: moment().tz('Asia/Jakarta').format(),
+          deleted_at: moment().tz('Asia/Jakarta').format(),
           updatedby: {
             connect: {
               id: currentUser?.id

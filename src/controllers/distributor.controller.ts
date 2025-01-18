@@ -112,8 +112,8 @@ export async function createDistributor(req: RequestCreateDistributor, res: Resp
           contact_person: inputData.contact_person,
           description   : inputData.description,
           status        : inputData.status,
-          created_at    : moment().tz('Asia/Jakarta').format().toString(),
-          updated_at    : moment().tz('Asia/Jakarta').format().toString(),
+          created_at    : moment().tz('Asia/Jakarta').format(),
+          updated_at    : moment().tz('Asia/Jakarta').format(),
           createdby     : {
             connect: {
               id: currentUser?.id
@@ -386,7 +386,7 @@ export async function editDistributor(req: RequestEditDistributor, res: Response
           contact_person: editData.contact_person,
           description   : editData.description,
           status        : editData.status,
-          updated_at    : moment().tz('Asia/Jakarta').format().toString(),
+          updated_at    : moment().tz('Asia/Jakarta').format(),
           updatedby     : {
             connect : {
               id: currentUser?.id
@@ -473,8 +473,8 @@ export async function deleteDistributor(req: RequestDeleteDistributor, res: Resp
           uid: distributor_uid
         },
         data: {
-          updated_at: moment().tz('Asia/Jakarta').format().toString(),
-          deleted_at: moment().tz('Asia/Jakarta').format().toString(),
+          updated_at: moment().tz('Asia/Jakarta').format(),
+          deleted_at: moment().tz('Asia/Jakarta').format(),
           updatedby: {
             connect: {
               id: currentUser?.id

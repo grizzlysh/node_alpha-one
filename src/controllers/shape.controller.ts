@@ -79,8 +79,8 @@ export async function createShape(req: RequestCreateShape, res: Response): Promi
       let shape = await prisma.shapes.create({
         data: {
           name        : inputData.name,
-          created_at  : moment().tz('Asia/Jakarta').format().toString(),
-          updated_at  : moment().tz('Asia/Jakarta').format().toString(),
+          created_at  : moment().tz('Asia/Jakarta').format(),
+          updated_at  : moment().tz('Asia/Jakarta').format(),
           createdby   : {
             connect: {
               id: currentUser?.id
@@ -309,7 +309,7 @@ export async function editShape(req: RequestEditShape, res: Response): Promise<R
         },
         data: {
           name             : editData.name,
-          updated_at       : moment().tz('Asia/Jakarta').format().toString(),
+          updated_at       : moment().tz('Asia/Jakarta').format(),
           updatedby        : {
             connect : {
               id: currentUser?.id
@@ -390,8 +390,8 @@ export async function deleteShape(req: RequestDeleteShape, res: Response): Promi
           uid: shape_uid
         },
         data: {
-          updated_at: moment().tz('Asia/Jakarta').format().toString(),
-          deleted_at: moment().tz('Asia/Jakarta').format().toString(),
+          updated_at: moment().tz('Asia/Jakarta').format(),
+          deleted_at: moment().tz('Asia/Jakarta').format(),
           updatedby: {
             connect: {
               id: currentUser?.id

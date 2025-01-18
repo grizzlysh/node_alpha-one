@@ -79,8 +79,8 @@ export async function createTherapyClass(req: RequestCreateTherapyClass, res: Re
       let therapyClass = await prisma.therapy_classes.create({
         data: {
           name        : inputData.name,
-          created_at  : moment().tz('Asia/Jakarta').format().toString(),
-          updated_at  : moment().tz('Asia/Jakarta').format().toString(),
+          created_at  : moment().tz('Asia/Jakarta').format(),
+          updated_at  : moment().tz('Asia/Jakarta').format(),
           createdby   : {
             connect: {
               id: currentUser?.id
@@ -309,7 +309,7 @@ export async function editTherapyClass(req: RequestEditTherapyClass, res: Respon
         },
         data: {
           name             : editData.name,
-          updated_at       : moment().tz('Asia/Jakarta').format().toString(),
+          updated_at       : moment().tz('Asia/Jakarta').format(),
           updatedby        : {
             connect : {
               id: currentUser?.id
@@ -390,8 +390,8 @@ export async function deleteTherapyClass(req: RequestDeleteTherapyClass, res: Re
           uid: therapy_class_uid
         },
         data: {
-          updated_at: moment().tz('Asia/Jakarta').format().toString(),
-          deleted_at: moment().tz('Asia/Jakarta').format().toString(),
+          updated_at: moment().tz('Asia/Jakarta').format(),
+          deleted_at: moment().tz('Asia/Jakarta').format(),
           updatedby: {
             connect: {
               id: currentUser?.id

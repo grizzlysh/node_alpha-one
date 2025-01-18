@@ -1,7 +1,7 @@
 import { Request } from "express";
 import { sortPage } from "../../utils/pagination.util";
 
-interface RequestGetDistributor extends Request{
+interface RequestGetStock extends Request{
   query: {
     page : string,
     size : string,
@@ -11,4 +11,4 @@ interface RequestGetDistributor extends Request{
   }
 }
 
-export default RequestGetDistributor;
+export default RequestGetStock;

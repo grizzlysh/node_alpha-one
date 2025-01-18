@@ -118,8 +118,8 @@ export async function createDrug(req: RequestCreateDrug, res: Response): Promise
               uid: inputData.therapy_class_uid,
             }
           },
-          created_at: moment().tz('Asia/Jakarta').format().toString(),
-          updated_at: moment().tz('Asia/Jakarta').format().toString(),
+          created_at: moment().tz('Asia/Jakarta').format(),
+          updated_at: moment().tz('Asia/Jakarta').format(),
           createdby : {
             connect: {
               id: currentUser?.id
@@ -426,7 +426,7 @@ export async function editDrug(req: RequestEditDrug, res: Response): Promise<Res
               uid: editData.therapy_class_uid,
             }
           },
-          updated_at: moment().tz('Asia/Jakarta').format().toString(),
+          updated_at: moment().tz('Asia/Jakarta').format(),
           updatedby : {
             connect : {
               id: currentUser?.id
@@ -527,8 +527,8 @@ export async function deleteDrug(req: RequestDeleteDrug, res: Response): Promise
           uid: drug_uid
         },
         data: {
-          updated_at: moment().tz('Asia/Jakarta').format().toString(),
-          deleted_at: moment().tz('Asia/Jakarta').format().toString(),
+          updated_at: moment().tz('Asia/Jakarta').format(),
+          deleted_at: moment().tz('Asia/Jakarta').format(),
           updatedby : {
             connect: {
               id: currentUser?.id

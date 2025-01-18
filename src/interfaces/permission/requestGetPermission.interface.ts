@@ -1,11 +1,12 @@
 import { Request } from "express";
+import { sortPage } from "../../utils/pagination.util";
 
 interface RequestGetPermission extends Request{
   query: {
     page : string,
     size : string,
     cond : string,
-    sort : string,
+    sort : sortPage,
     field: string,
   }
 }

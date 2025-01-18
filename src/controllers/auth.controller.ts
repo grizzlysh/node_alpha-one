@@ -304,8 +304,8 @@ export async function registerHandler(req: RequestRegister, res: Response): Prom
           sex       : inputData.sex,
           email     : inputData.email,
           password  : encryptPassword,
-          created_at: moment().tz('Asia/Jakarta').format().toString(),
-          updated_at: moment().tz('Asia/Jakarta').format().toString(),
+          created_at: moment().tz('Asia/Jakarta').format(),
+          updated_at: moment().tz('Asia/Jakarta').format(),
           createdby: {
             connect: {
               id: 1

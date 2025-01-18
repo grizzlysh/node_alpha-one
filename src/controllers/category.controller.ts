@@ -79,8 +79,8 @@ export async function createCategory(req: RequestCreateCategory, res: Response):
       let category = await prisma.categories.create({
         data: {
           name        : inputData.name,
-          created_at  : moment().tz('Asia/Jakarta').format().toString(),
-          updated_at  : moment().tz('Asia/Jakarta').format().toString(),
+          created_at  : moment().tz('Asia/Jakarta').format(),
+          updated_at  : moment().tz('Asia/Jakarta').format(),
           createdby   : {
             connect: {
               id: currentUser?.id
@@ -308,7 +308,7 @@ export async function editCategory(req: RequestEditCategory, res: Response): Pro
         },
         data: {
           name             : editData.name,
-          updated_at       : moment().tz('Asia/Jakarta').format().toString(),
+          updated_at       : moment().tz('Asia/Jakarta').format(),
           updatedby        : {
             connect : {
               id: currentUser?.id
@@ -389,8 +389,8 @@ export async function deleteCategory(req: RequestDeleteCategory, res: Response):
           uid: category_uid
         },
         data: {
-          updated_at: moment().tz('Asia/Jakarta').format().toString(),
-          deleted_at: moment().tz('Asia/Jakarta').format().toString(),
+          updated_at: moment().tz('Asia/Jakarta').format(),
+          deleted_at: moment().tz('Asia/Jakarta').format(),
           updatedby: {
             connect: {
               id: currentUser?.id
